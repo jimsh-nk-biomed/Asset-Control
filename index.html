@@ -5217,30 +5217,100 @@ function exportEquipmentExcel(){
         return;
     }
 
+    /*
+       Export follows the logged-in user's module permissions.
+       Administrator gets all columns and all document links.
+       Normal users get only the module information they are
+       authorized to access.
+    */
+
+    const isAdmin =
+        currentUser && currentUser.role === "admin";
+
+    const canInstallation =
+        isAdmin || hasModuleAccess("installation");
+
+    const canPms =
+        isAdmin || hasModuleAccess("pms");
+
+    const canCalibration =
+        isAdmin || hasModuleAccess("calibration");
+
+    const canIq =
+        isAdmin || hasModuleAccess("iq");
+
+    const canOq =
+        isAdmin || hasModuleAccess("oq");
+
+    const canPq =
+        isAdmin || hasModuleAccess("pq");
+
     const exportData =
         data.map(function(e){
 
-            return {
+            const row = {
 
                 Asset_No:e.Asset_No || "",
                 Department:e.Department || "",
                 Equipment:e.Equipment || "",
                 Model:e.Model || "",
                 Make:e.Make || "",
-                Serial_No:e.Serial_No || "",
-                Installation_Date:formatDate(e.Installation_Date),
-                PMS_Done_On:formatDate(e.PMS_Done_On),
-                PMS_Due_On:formatDate(e.PMS_Due_On),
-                Calibration_Done_On:formatDate(e.Calibration_Done_On),
-                Calibration_Due_On:formatDate(e.Calibration_Due_On),
-                Installation_PDF:e.Installation_PDF || "",
-                PMS_PDF:e.PMS_PDF || "",
-                Calibration_PDF:e.Calibration_PDF || "",
-                IQ_PDF:e.IQ_PDF || "",
-                OQ_PDF:e.OQ_PDF || "",
-                PQ_PDF:e.PQ_PDF || ""
+                Serial_No:e.Serial_No || ""
 
             };
+
+            /* Installation module */
+            if(canInstallation){
+                row.Installation_Date =
+                    formatDate(e.Installation_Date);
+
+                row.Installation_PDF =
+                    e.Installation_PDF || "";
+            }
+
+            /* PMS module */
+            if(canPms){
+                row.PMS_Done_On =
+                    formatDate(e.PMS_Done_On);
+
+                row.PMS_Due_On =
+                    formatDate(e.PMS_Due_On);
+
+                row.PMS_PDF =
+                    e.PMS_PDF || "";
+            }
+
+            /* Calibration module */
+            if(canCalibration){
+                row.Calibration_Done_On =
+                    formatDate(e.Calibration_Done_On);
+
+                row.Calibration_Due_On =
+                    formatDate(e.Calibration_Due_On);
+
+                row.Calibration_PDF =
+                    e.Calibration_PDF || "";
+            }
+
+            /* IQ module */
+            if(canIq){
+                row.IQ_PDF =
+                    e.IQ_PDF || "";
+            }
+
+            /* OQ module */
+            if(canOq){
+                row.OQ_PDF =
+                    e.OQ_PDF || "";
+            }
+
+            /* PQ module */
+            if(canPq){
+                row.PQ_PDF =
+                    e.PQ_PDF || "";
+            }
+
+            return row;
 
         });
 
@@ -5264,7 +5334,7 @@ function exportEquipmentExcel(){
     );
 
     showToast(
-        "Equipment exported to Excel."
+        "Equipment exported according to your module permissions."
     );
 
 }
