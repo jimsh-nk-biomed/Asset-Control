@@ -415,10 +415,15 @@ body{
 
 .page{
     display:none;
+    /* When a module opens, its own top aligns below the sticky topbar. */
+    scroll-margin-top:68px;
 }
 
 .page.active{
     display:block;
+    position:relative;
+    top:0;
+    margin-top:0;
 }
 
 /* =========================
@@ -1220,6 +1225,61 @@ tr:hover td{
 
                 <button
                     class="nav-btn"
+                    data-page="license"
+                    onclick="openPage('license')"
+                >
+                    <span class="nav-icon">📜</span>
+                    License
+                </button>
+
+                <button
+                    class="nav-btn"
+                    data-page="amccmc"
+                    onclick="openPage('amccmc')"
+                >
+                    <span class="nav-icon">📑</span>
+                    AMC / CMC
+                </button>
+
+                <button
+                    class="nav-btn"
+                    data-page="breakdown"
+                    onclick="openPage('breakdown')"
+                >
+                    <span class="nav-icon">🛠️</span>
+                    Breakdown
+                </button>
+
+                <!-- ADMIN ONLY: SEPARATE DOCUMENT IMPORTS -->
+                <button
+                    class="nav-btn admin-only"
+                    data-page="licenseImport"
+                    onclick="openPage('licenseImport')"
+                >
+                    <span class="nav-icon">📥</span>
+                    License Import
+                </button>
+
+                <button
+                    class="nav-btn admin-only"
+                    data-page="amccmcImport"
+                    onclick="openPage('amccmcImport')"
+                >
+                    <span class="nav-icon">📥</span>
+                    AMC / CMC Import
+                </button>
+
+                <button
+                    class="nav-btn admin-only"
+                    data-page="breakdownImport"
+                    onclick="openPage('breakdownImport')"
+                >
+                    <span class="nav-icon">📥</span>
+                    Breakdown Import
+                </button>
+
+                <button
+                    class="nav-btn"
                     data-page="reports"
                     onclick="openPage('reports')"
                 >
@@ -1852,6 +1912,285 @@ tr:hover td{
 
 
                 <!-- =================================================
+                     LICENSE DOCUMENTS
+                ================================================== -->
+                <section id="page-license" class="page">
+
+                    <div class="page-header">
+                        <div>
+                            <h1>License Documents</h1>
+                            <p>View license and statutory documents approved for this user.</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="search-row">
+                            <input type="text" id="licenseSearch" placeholder="Search license, department, equipment..." oninput="renderLicenseTable()">
+                            <select id="licenseStatusFilter" onchange="renderLicenseTable()">
+                                <option value="all">All Status</option>
+                                <option value="valid">Valid</option>
+                                <option value="expiring">Expiring Soon</option>
+                                <option value="expired">Expired</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>License</th>
+                                        <th>License No</th>
+                                        <th>Department</th>
+                                        <th>Equipment</th>
+                                        <th>Issue Date</th>
+                                        <th>Expiry Date</th>
+                                        <th>Status</th>
+                                        <th>Document</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="licenseTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    </div>
+
+                </section>
+
+                <!-- =================================================
+                     AMC / CMC
+                ================================================== -->
+                <section id="page-amccmc" class="page">
+
+                    <div class="page-header">
+                        <div>
+                            <h1>AMC / CMC</h1>
+                            <p>AMC and CMC contract documents and validity register.</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="search-row">
+                            <input type="text" id="amccmcSearch" placeholder="Search AMC/CMC, department, equipment, vendor..." oninput="renderAmcCmcTable()">
+                            <select id="amccmcStatusFilter" onchange="renderAmcCmcTable()">
+                                <option value="all">All Status</option>
+                                <option value="valid">Valid</option>
+                                <option value="expiring">Expiring Soon</option>
+                                <option value="expired">Expired</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Contract No</th>
+                                        <th>Department</th>
+                                        <th>Equipment</th>
+                                        <th>Vendor</th>
+                                        <th>Start Date</th>
+                                        <th>Expiry Date</th>
+                                        <th>Status</th>
+                                        <th>Document</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="amccmcTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </section>
+
+                <!-- =================================================
+                     LICENSE IMPORT - ADMIN ONLY
+                ================================================== -->
+                <section id="page-licenseImport" class="page admin-only-page">
+
+                    <div class="page-header">
+                        <div>
+                            <h1>License Import</h1>
+                            <p>Import and update License documents separately from the License viewing register.</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="downloadLicenseTemplate()">📄 Download License Template</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="import-box">
+                            <h3>Import License Register from Excel</h3>
+                            <p>This import is only for License documents. It does not modify Equipment or AMC / CMC data.</p>
+                            <label class="file-input">
+                                📥 Select License Excel
+                                <input type="file" accept=".xlsx,.xls,.csv" onchange="handleLicenseExcelImport(event)">
+                            </label>
+                            <div class="preview-info" id="licenseImportInfo">No file selected.</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="page-header" style="margin-bottom:12px;">
+                            <div>
+                                <h2 style="font-size:18px;">License Import Preview</h2>
+                                <p>Review the records before saving them to the License register.</p>
+                            </div>
+                            <div style="display:flex;gap:10px;">
+                                <button class="btn btn-secondary" onclick="clearLicenseImport()">Clear</button>
+                                <button class="btn btn-primary" onclick="saveImportedLicenses()">✅ Save Licenses</button>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead id="licensePreviewHead"></thead>
+                                <tbody id="licensePreviewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </section>
+
+                <!-- =================================================
+                     AMC / CMC IMPORT - ADMIN ONLY
+                ================================================== -->
+                <section id="page-amccmcImport" class="page admin-only-page">
+
+                    <div class="page-header">
+                        <div>
+                            <h1>AMC / CMC Import</h1>
+                            <p>Import and update AMC / CMC documents separately from the AMC / CMC viewing register.</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="downloadAmcCmcTemplate()">📄 Download AMC / CMC Template</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="import-box">
+                            <h3>Import AMC / CMC Register from Excel</h3>
+                            <p>This import is only for AMC / CMC documents. It does not modify Equipment or License data.</p>
+                            <label class="file-input">
+                                📥 Select AMC / CMC Excel
+                                <input type="file" accept=".xlsx,.xls,.csv" onchange="handleAmcCmcExcelImport(event)">
+                            </label>
+                            <div class="preview-info" id="amccmcImportInfo">No file selected.</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="page-header" style="margin-bottom:12px;">
+                            <div>
+                                <h2 style="font-size:18px;">AMC / CMC Import Preview</h2>
+                                <p>Review the records before saving them to the AMC / CMC register.</p>
+                            </div>
+                            <div style="display:flex;gap:10px;">
+                                <button class="btn btn-secondary" onclick="clearAmcCmcImport()">Clear</button>
+                                <button class="btn btn-primary" onclick="saveImportedAmcCmc()">✅ Save AMC / CMC</button>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead id="amccmcPreviewHead"></thead>
+                                <tbody id="amccmcPreviewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </section>
+
+                <!-- =================================================
+                     BREAKDOWN
+                ================================================== -->
+                <section id="page-breakdown" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1>Breakdown</h1>
+                            <p>Breakdown records and related documents.</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="search-row">
+                            <input type="text" id="breakdownSearch" placeholder="Search Breakdown ID, Asset, Equipment, Department..." oninput="renderBreakdownTable()">
+                            <select id="breakdownStatusFilter" onchange="renderBreakdownTable()">
+                                <option value="all">All Status</option>
+                                <option value="open">Open</option>
+                                <option value="inprogress">In Progress</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Breakdown ID</th>
+                                        <th>Asset No</th>
+                                        <th>Department</th>
+                                        <th>Equipment</th>
+                                        <th>Model</th>
+                                        <th>Make</th>
+                                        <th>Breakdown Date</th>
+                                        <th>Complaint</th>
+                                        <th>Status</th>
+                                        <th>Rectification Date</th>
+                                        <th>Document</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="breakdownTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =================================================
+                     BREAKDOWN IMPORT - ADMIN ONLY
+                ================================================== -->
+                <section id="page-breakdownImport" class="page admin-only-page">
+                    <div class="page-header">
+                        <div>
+                            <h1>Breakdown Import</h1>
+                            <p>Import Breakdown data and documents separately from the Breakdown viewing register.</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="downloadBreakdownTemplate()">📄 Download Breakdown Template</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="import-box">
+                            <h3>Import Breakdown Register from Excel</h3>
+                            <p>This import is only for Breakdown records. It does not modify Equipment, License or AMC / CMC data.</p>
+                            <label class="file-input">
+                                📥 Select Breakdown Excel
+                                <input type="file" accept=".xlsx,.xls,.csv" onchange="handleBreakdownExcelImport(event)">
+                            </label>
+                            <div class="preview-info" id="breakdownImportInfo">No file selected.</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="page-header" style="margin-bottom:12px;">
+                            <div>
+                                <h2 style="font-size:18px;">Breakdown Import Preview</h2>
+                                <p>Review the records before saving them to the Breakdown register.</p>
+                            </div>
+                            <div style="display:flex;gap:10px;">
+                                <button class="btn btn-secondary" onclick="clearBreakdownImport()">Clear</button>
+                                <button class="btn btn-primary" onclick="saveImportedBreakdowns()">✅ Save Breakdown</button>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead id="breakdownPreviewHead"></thead>
+                                <tbody id="breakdownPreviewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- =================================================
                      REPORTS
                 ================================================== -->
                 <section id="page-reports" class="page">
@@ -2131,6 +2470,30 @@ tr:hover td{
                                         PQ
                                     </label>
 
+                                    <label class="module-check">
+                                        <input
+                                            type="checkbox"
+                                            id="mLicense"
+                                        >
+                                        License
+                                    </label>
+
+                                    <label class="module-check">
+                                        <input
+                                            type="checkbox"
+                                            id="mAmcCmc"
+                                        >
+                                        AMC / CMC
+                                    </label>
+
+                                    <label class="module-check">
+                                        <input
+                                            type="checkbox"
+                                            id="mBreakdown"
+                                        >
+                                        Breakdown
+                                    </label>
+
                                 </div>
 
                             </div>
@@ -2357,6 +2720,87 @@ tr:hover td{
 </div>
 
 
+
+<!-- =========================================================
+     EDIT USER MODAL - ADMIN ONLY
+========================================================= -->
+<div id="editUserModal" class="modal-overlay">
+    <div class="modal" style="max-width:650px;">
+        <div class="modal-header">
+            <div>
+                <h2>Edit User</h2>
+                <div class="muted" id="editUserSubtitle">Change role, status and module access</div>
+            </div>
+            <button class="close-btn" type="button" onclick="closeEditUserModal()">×</button>
+        </div>
+
+        <input type="hidden" id="editUserId">
+
+        <div class="form-grid">
+            <div class="form-field">
+                <label>Full Name</label>
+                <input type="text" id="editFullName">
+            </div>
+
+            <div class="form-field">
+                <label>Login ID</label>
+                <input type="text" id="editUsername" readonly style="background:#f8fafc;">
+            </div>
+
+            <div class="form-field">
+                <label>New Password <span class="muted">(leave blank to keep current)</span></label>
+                <div class="password-wrap">
+                    <input type="password" id="editPassword" placeholder="Leave blank to keep current password">
+                    <button class="eye-btn" type="button" onclick="togglePassword('editPassword',this)">👁</button>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label>Role</label>
+                <select id="editRole">
+                    <option value="user">Normal User</option>
+                    <option value="admin">Administrator</option>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label>Auto Logout (Minutes)</label>
+                <input type="number" id="editAutoLogout" min="1">
+            </div>
+
+            <div class="form-field">
+                <label>Status</label>
+                <select id="editStatus">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+
+            <div class="full">
+                <label style="display:block;font-size:12px;font-weight:700;margin-bottom:7px;">
+                    Module Access / Rights
+                </label>
+                <div class="module-grid">
+                    <label class="module-check"><input type="checkbox" id="editInstallation"> Installation</label>
+                    <label class="module-check"><input type="checkbox" id="editPMS"> PMS</label>
+                    <label class="module-check"><input type="checkbox" id="editCalibration"> Calibration</label>
+                    <label class="module-check"><input type="checkbox" id="editIQ"> IQ</label>
+                    <label class="module-check"><input type="checkbox" id="editOQ"> OQ</label>
+                    <label class="module-check"><input type="checkbox" id="editPQ"> PQ</label>
+                    <label class="module-check"><input type="checkbox" id="editLicense"> License</label>
+                    <label class="module-check"><input type="checkbox" id="editAmcCmc"> AMC / CMC</label>
+                    <label class="module-check"><input type="checkbox" id="editBreakdown"> Breakdown</label>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+            <button class="btn btn-secondary" type="button" onclick="closeEditUserModal()">Cancel</button>
+            <button class="btn btn-primary" type="button" onclick="saveEditedUser()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 
@@ -2368,6 +2812,9 @@ tr:hover td{
 const USERS_KEY = "smartbio_users_v3";
 const EQUIPMENT_KEY = "smartbio_equipment_v3";
 const SETTINGS_KEY = "JIMSH-NK_settings_v3";
+const LICENSES_KEY = "smartbio_licenses_v1";
+const AMCCMC_KEY = "smartbio_amccmc_v1";
+const BREAKDOWN_KEY = "smartbio_breakdown_v1";
 
 let currentUser = null;
 let sessionTimer = null;
@@ -2752,10 +3199,16 @@ function applyModuleAccess(){
 
     const pmsAllowed = isAdmin || m.pms === true;
     const calAllowed = isAdmin || m.calibration === true;
+    const licenseAllowed = isAdmin || m.license === true;
+    const amcCmcAllowed = isAdmin || m.amccmc === true;
+    const breakdownAllowed = isAdmin || m.breakdown === true;
 
     const pmsBtn = document.querySelector('[data-page="pms"]');
     const calBtn = document.querySelector('[data-page="calibration"]');
     const docsBtn = document.querySelector('[data-page="documents"]');
+    const licenseBtn = document.querySelector('[data-page="license"]');
+    const amcCmcBtn = document.querySelector('[data-page="amccmc"]');
+    const breakdownBtn = document.querySelector('[data-page="breakdown"]');
 
     const pmsCard = document.getElementById("dashboardPmsCard");
     const calCard = document.getElementById("dashboardCalibrationCard");
@@ -2766,6 +3219,18 @@ function applyModuleAccess(){
 
     if(calBtn){
         calBtn.style.display = calAllowed ? "flex" : "none";
+    }
+
+    if(licenseBtn){
+        licenseBtn.style.display = licenseAllowed ? "flex" : "none";
+    }
+
+    if(amcCmcBtn){
+        amcCmcBtn.style.display = amcCmcAllowed ? "flex" : "none";
+    }
+
+    if(breakdownBtn){
+        breakdownBtn.style.display = breakdownAllowed ? "flex" : "none";
     }
 
     if(pmsCard){
@@ -2847,7 +3312,7 @@ function openPage(page){
 
     /* SECURITY GUARD */
     if(
-        (page==="settings" || page==="users" || page==="import")
+        (page==="settings" || page==="users" || page==="import" || page==="licenseImport" || page==="amccmcImport" || page==="breakdownImport")
         &&
         currentUser.role!=="admin"
     ){
@@ -2869,6 +3334,21 @@ function openPage(page){
         return;
     }
 
+    if(page==="license" && !hasModuleAccess("license")){
+        showToast("License access is not enabled for this user.");
+        return;
+    }
+
+    if(page==="amccmc" && !hasModuleAccess("amccmc")){
+        showToast("AMC / CMC access is not enabled for this user.");
+        return;
+    }
+
+    if(page==="breakdown" && !hasModuleAccess("breakdown")){
+        showToast("Breakdown access is not enabled for this user.");
+        return;
+    }
+
     stopScanner();
 
     document
@@ -2883,6 +3363,44 @@ function openPage(page){
     if(!target) return;
 
     target.classList.add("active");
+
+    /* =====================================================
+       OPEN EVERY MODULE AT ITS OWN TOP
+       The old code reset the whole document to 0 after
+       scrollIntoView(), which caused blank space on some pages.
+    ====================================================== */
+    function resetPageScroll(){
+
+        const topbar = document.querySelector(".topbar");
+        const topbarHeight = topbar ? topbar.offsetHeight : 68;
+        const rect = target.getBoundingClientRect();
+        const targetTop = Math.max(0, window.pageYOffset + rect.top - topbarHeight);
+
+        window.scrollTo({
+            top: targetTop,
+            left: 0,
+            behavior: "auto"
+        });
+
+        document.documentElement.scrollTop = targetTop;
+        document.body.scrollTop = targetTop;
+
+        const mainContent = document.querySelector(".main");
+        if(mainContent) mainContent.scrollTop = 0;
+
+        const content = document.querySelector(".content");
+        if(content) content.scrollTop = 0;
+    }
+
+    resetPageScroll();
+
+    /* Run again after the selected module has rendered. */
+    requestAnimationFrame(function(){
+        resetPageScroll();
+        requestAnimationFrame(function(){
+            resetPageScroll();
+        });
+    });
 
     document
         .querySelectorAll(".nav-btn")
@@ -2907,6 +3425,12 @@ function openPage(page){
         calibration:"Calibration",
         documents:"Documents",
         import:"Import Excel",
+        license:"License Documents",
+        amccmc:"AMC / CMC",
+        breakdown:"Breakdown",
+        licenseImport:"License Import",
+        breakdownImport:"Breakdown Import",
+        amccmcImport:"AMC / CMC Import",
         reports:"Reports",
         users:"User Management",
         settings:"Settings"
@@ -2932,6 +3456,30 @@ function openPage(page){
     if(page==="documents"){
         renderDocumentsTable();
     }
+
+    if(page==="license"){
+        renderLicenseTable();
+    }
+
+    if(page==="amccmc"){
+        renderAmcCmcTable();
+    }
+
+    if(page==="breakdown"){
+        renderBreakdownTable();
+    }
+
+    /* Rendered content can change the page height and some browsers
+       restore the previous scroll position after the click. Force the
+       newly selected page back to its TOP after all rendering is done. */
+    requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+            resetPageScroll();
+        });
+    });
+
+    setTimeout(resetPageScroll, 50);
+    setTimeout(resetPageScroll, 200);
 
     if(page==="reports"){
         renderReports();
@@ -3110,7 +3658,16 @@ function createUser(){
                 document.getElementById("mOQ").checked,
 
             pq:
-                document.getElementById("mPQ").checked
+                document.getElementById("mPQ").checked,
+
+            license:
+                document.getElementById("mLicense").checked,
+
+            amccmc:
+                document.getElementById("mAmcCmc").checked,
+
+            breakdown:
+                document.getElementById("mBreakdown").checked
         }
 
     };
@@ -3189,12 +3746,20 @@ function renderUsersTable(){
                             '<span class="muted">Current User</span>'
                             :
                             `
-                            <button
-                                class="btn btn-danger btn-small"
-                                onclick="deleteUser('${escapeHtml(u.id)}')"
-                            >
-                                Delete
-                            </button>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                <button
+                                    class="btn btn-primary btn-small"
+                                    onclick="openEditUserModal('${escapeHtml(u.id)}')"
+                                >
+                                    ✏️ Edit
+                                </button>
+                                <button
+                                    class="btn btn-danger btn-small"
+                                    onclick="deleteUser('${escapeHtml(u.id)}')"
+                                >
+                                    Delete
+                                </button>
+                            </div>
                             `
                         }
                     </td>
@@ -3203,6 +3768,120 @@ function renderUsersTable(){
 
         })
         .join("");
+}
+
+
+
+function openEditUserModal(id){
+
+    if(!currentUser || currentUser.role!=="admin"){
+        showToast("Administrator access required.");
+        return;
+    }
+
+    const users = getUsers();
+    const user = users.find(function(u){ return u.id===id; });
+
+    if(!user){
+        showToast("User not found.");
+        return;
+    }
+
+    /* Do not allow an administrator to edit his/her own account
+       from this screen, preventing accidental loss of admin access. */
+    if(currentUser.id === user.id){
+        showToast("The current Administrator account cannot be edited here.");
+        return;
+    }
+
+    const m = user.modules || {};
+
+    document.getElementById("editUserId").value = user.id;
+    document.getElementById("editFullName").value = user.name || "";
+    document.getElementById("editUsername").value = user.username || "";
+    document.getElementById("editPassword").value = "";
+    document.getElementById("editRole").value = user.role || "user";
+    document.getElementById("editStatus").value = user.status || "active";
+    document.getElementById("editAutoLogout").value = Number(user.autoLogout || 60);
+
+    document.getElementById("editInstallation").checked = m.installation === true;
+    document.getElementById("editPMS").checked = m.pms === true;
+    document.getElementById("editCalibration").checked = m.calibration === true;
+    document.getElementById("editIQ").checked = m.iq === true;
+    document.getElementById("editOQ").checked = m.oq === true;
+    document.getElementById("editPQ").checked = m.pq === true;
+    document.getElementById("editLicense").checked = m.license === true;
+    document.getElementById("editAmcCmc").checked = m.amccmc === true;
+    document.getElementById("editBreakdown").checked = m.breakdown === true;
+
+    document.getElementById("editUserSubtitle").textContent =
+        "Editing: " + (user.username || "User") +
+        " — change role, status, auto logout and module rights.";
+
+    document.getElementById("editUserModal").style.display = "flex";
+}
+
+
+function closeEditUserModal(){
+    const modal = document.getElementById("editUserModal");
+    if(modal) modal.style.display = "none";
+}
+
+
+function saveEditedUser(){
+
+    if(!currentUser || currentUser.role!=="admin"){
+        showToast("Administrator access required.");
+        return;
+    }
+
+    const id = document.getElementById("editUserId").value;
+    const users = getUsers();
+    const index = users.findIndex(function(u){ return u.id===id; });
+
+    if(index < 0){
+        showToast("User not found.");
+        return;
+    }
+
+    const user = users[index];
+    const name = document.getElementById("editFullName").value.trim();
+    const role = document.getElementById("editRole").value;
+    const status = document.getElementById("editStatus").value;
+    const autoLogout = Number(document.getElementById("editAutoLogout").value) || 60;
+    const newPassword = document.getElementById("editPassword").value;
+
+    if(!name){
+        showToast("Please enter the user's full name.");
+        return;
+    }
+
+    user.name = name;
+    user.role = role;
+    user.status = status;
+    user.autoLogout = autoLogout;
+
+    if(newPassword){
+        user.password = newPassword;
+    }
+
+    user.modules = {
+        installation: document.getElementById("editInstallation").checked,
+        pms: document.getElementById("editPMS").checked,
+        calibration: document.getElementById("editCalibration").checked,
+        iq: document.getElementById("editIQ").checked,
+        oq: document.getElementById("editOQ").checked,
+        pq: document.getElementById("editPQ").checked,
+        license: document.getElementById("editLicense").checked,
+        amccmc: document.getElementById("editAmcCmc").checked,
+        breakdown: document.getElementById("editBreakdown").checked
+    };
+
+    saveUsers(users);
+    closeEditUserModal();
+    renderUsersTable();
+
+    showToast("User rights updated successfully.");
 }
 
 
@@ -5341,8 +6020,476 @@ function exportEquipmentExcel(){
 
 
 /* =========================================================
+   LICENSE MANAGEMENT
+========================================================= */
+
+let importedLicenses = [];
+
+function getLicenses(){
+    try{
+        return JSON.parse(localStorage.getItem(LICENSES_KEY)) || [];
+    }catch(e){
+        return [];
+    }
+}
+
+function saveLicenses(data){
+    localStorage.setItem(LICENSES_KEY, JSON.stringify(data || []));
+}
+
+function licenseStatus(license){
+    const raw = license.Expiry_Date || license.ExpiryDate || license.Expiry || "";
+    if(!raw) return {type:"valid", text:"No Expiry"};
+    const d = parseDateValue(raw);
+    if(!d) return {type:"valid", text:"Valid"};
+    const today = new Date(); today.setHours(0,0,0,0);
+    d.setHours(0,0,0,0);
+    const days = Math.ceil((d - today) / 86400000);
+    if(days < 0) return {type:"expired", text:"Expired"};
+    if(days <= 30) return {type:"expiring", text:"Expiring Soon"};
+    return {type:"valid", text:"Valid"};
+}
+
+function renderLicenseTable(){
+    const tbody = document.getElementById("licenseTableBody");
+    if(!tbody) return;
+
+    if(!currentUser || !hasModuleAccess("license")){
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">License access is not enabled for this user.</td></tr>';
+        return;
+    }
+
+    const q = String((document.getElementById("licenseSearch") || {}).value || "").toLowerCase().trim();
+    const filter = String((document.getElementById("licenseStatusFilter") || {}).value || "all");
+
+    const rows = getLicenses().filter(function(x){
+        const hay = [x.License_Name,x.License_No,x.Department,x.Equipment,x.Make,x.Model].join(" ").toLowerCase();
+        const st = licenseStatus(x).type;
+        return (!q || hay.indexOf(q) >= 0) && (filter === "all" || st === filter);
+    });
+
+    if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">No license documents found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rows.map(function(x){
+        const st = licenseStatus(x);
+        const badge = st.type === "expired"
+            ? '<span class="badge badge-red">Expired</span>'
+            : st.type === "expiring"
+            ? '<span class="badge badge-orange">Expiring Soon</span>'
+            : '<span class="badge badge-green">Valid</span>';
+        const link = x.License_PDF || x.License_Document || x.Document_URL || "";
+        const doc = link
+            ? '<a class="doc-btn doc-install" href="'+escapeAttr(link)+'" target="_blank" rel="noopener">📄 View License</a>'
+            : '<span class="muted">No document</span>';
+        return `<tr>
+            <td><b>${escapeHtml(x.License_Name || "License")}</b></td>
+            <td>${escapeHtml(x.License_No || "")}</td>
+            <td>${escapeHtml(x.Department || "")}</td>
+            <td>${escapeHtml(x.Equipment || "")}</td>
+            <td>${escapeHtml(formatDate(x.Issue_Date || ""))}</td>
+            <td>${escapeHtml(formatDate(x.Expiry_Date || ""))}</td>
+            <td>${badge}</td>
+            <td>${doc}</td>
+        </tr>`;
+    }).join("");
+}
+
+function normalizeLicenseRow(row){
+    const pick = function(keys){
+        const normalized = {};
+        Object.keys(row).forEach(function(k){ normalized[normalizeHeader(k)] = row[k]; });
+        for(let i=0;i<keys.length;i++){
+            const k = normalizeHeader(keys[i]);
+            if(Object.prototype.hasOwnProperty.call(normalized,k)) return normalized[k];
+        }
+        return "";
+    };
+    return {
+        License_Name:String(pick(["License_Name","License","License_Name/Type","License Type"])||"").trim(),
+        License_No:String(pick(["License_No","License_Number","License Number","Registration_No"])||"").trim(),
+        Department:String(pick(["Department"])||"").trim(),
+        Equipment:String(pick(["Equipment","Equipment_Name"])||"").trim(),
+        Model:String(pick(["Model"])||"").trim(),
+        Make:String(pick(["Make"])||"").trim(),
+        Issue_Date:pick(["Issue_Date","Issued_Date","Start_Date","License_Issue_Date"]),
+        Expiry_Date:pick(["Expiry_Date","Expiry","Valid_Upto","License_Expiry_Date"]),
+        License_PDF:String(pick(["License_PDF","License_Document","Document_URL","License_Link"])||"").trim()
+    };
+}
+
+function handleLicenseExcelImport(event){
+    if(!currentUser || currentUser.role !== "admin"){
+        showToast("Only Administrator can import license documents.");
+        return;
+    }
+    const file = event.target.files[0];
+    if(!file){ clearLicenseImport(); return; }
+    const reader = new FileReader();
+    reader.onload = function(e){
+        try{
+            const wb = XLSX.read(new Uint8Array(e.target.result), {type:"array", cellDates:true});
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws,{defval:""});
+            importedLicenses = rows.map(normalizeLicenseRow).filter(function(x){ return x.License_Name || x.License_No || x.License_PDF; });
+            document.getElementById("licenseImportInfo").innerHTML = 'File: <b>'+escapeHtml(file.name)+'</b> | Rows found: <b>'+importedLicenses.length+'</b>';
+            renderLicenseImportPreview();
+        }catch(err){
+            importedLicenses=[];
+            document.getElementById("licenseImportInfo").textContent="Unable to read this Excel file.";
+            showToast("License Excel import failed.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function renderLicenseImportPreview(){
+    const head=document.getElementById("licensePreviewHead"), body=document.getElementById("licensePreviewBody");
+    if(!head || !body) return;
+    const cols=["License_Name","License_No","Department","Equipment","Model","Make","Issue_Date","Expiry_Date","License_PDF"];
+    head.innerHTML='<tr>'+cols.map(function(c){return '<th>'+escapeHtml(c)+'</th>';}).join('')+'</tr>';
+    body.innerHTML=importedLicenses.slice(0,100).map(function(x){
+        return '<tr>'+cols.map(function(c){return '<td>'+escapeHtml(c.indexOf("Date")>=0 ? formatDate(x[c]) : (x[c]||""))+'</td>';}).join('')+'</tr>';
+    }).join("") || '<tr><td colspan="9" class="empty">No rows to preview.</td></tr>';
+}
+
+function saveImportedLicenses(){
+    if(!currentUser || currentUser.role !== "admin"){
+        showToast("Administrator access required."); return;
+    }
+    if(!importedLicenses.length){ showToast("Please select a License Excel file first."); return; }
+    saveLicenses(importedLicenses);
+    showToast(importedLicenses.length+" license records saved successfully.");
+    importedLicenses=[];
+    document.getElementById("licenseImportInfo").textContent="Import saved. You can select another file.";
+    renderLicenseImportPreview();
+}
+
+function clearLicenseImport(){
+    importedLicenses=[];
+    const info=document.getElementById("licenseImportInfo");
+    if(info) info.textContent="No file selected.";
+    renderLicenseImportPreview();
+}
+
+function downloadLicenseTemplate(){
+    if(!currentUser || currentUser.role !== "admin"){
+        showToast("Administrator access required."); return;
+    }
+    const headers=["License_Name","License_No","Department","Equipment","Model","Make","Issue_Date","Expiry_Date","License_PDF"];
+    const ws=XLSX.utils.aoa_to_sheet([headers,["Example Medical License","LIC-001","Radiology","X-Ray","Model-1","Make-1","01-01-2026","31-12-2026",""]]);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"License");
+    XLSX.writeFile(wb,"SmartBio_License_Template.xlsx");
+}
+
+/* =========================================================
+   AMC / CMC MANAGEMENT
+========================================================= */
+
+let importedAmcCmc = [];
+
+function getAmcCmc(){
+    try{
+        return JSON.parse(localStorage.getItem(AMCCMC_KEY)) || [];
+    }catch(e){
+        return [];
+    }
+}
+
+function saveAmcCmc(data){
+    localStorage.setItem(AMCCMC_KEY, JSON.stringify(data || []));
+}
+
+function amcCmcStatus(item){
+    const raw = item.Expiry_Date || item.ExpiryDate || item.Expiry || "";
+    if(!raw) return {type:"valid", text:"No Expiry"};
+    const d = parseDateValue(raw);
+    if(!d) return {type:"valid", text:"Valid"};
+    const today = new Date(); today.setHours(0,0,0,0);
+    d.setHours(0,0,0,0);
+    const days = Math.ceil((d - today) / 86400000);
+    if(days < 0) return {type:"expired", text:"Expired"};
+    if(days <= 30) return {type:"expiring", text:"Expiring Soon"};
+    return {type:"valid", text:"Valid"};
+}
+
+function renderAmcCmcTable(){
+    const tbody = document.getElementById("amccmcTableBody");
+    if(!tbody) return;
+
+    if(!currentUser || !hasModuleAccess("amccmc")){
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">AMC / CMC access is not enabled for this user.</td></tr>';
+        return;
+    }
+
+    const q = String((document.getElementById("amccmcSearch") || {}).value || "").toLowerCase().trim();
+    const filter = String((document.getElementById("amccmcStatusFilter") || {}).value || "all");
+
+    const rows = getAmcCmc().filter(function(x){
+        const hay = [x.Contract_Type,x.Contract_No,x.Department,x.Equipment,x.Vendor,x.Model,x.Make].join(" ").toLowerCase();
+        const st = amcCmcStatus(x).type;
+        return (!q || hay.indexOf(q) >= 0) && (filter === "all" || st === filter);
+    });
+
+    if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">No AMC / CMC records found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rows.map(function(x){
+        const st = amcCmcStatus(x);
+        const badge = st.type === "expired"
+            ? '<span class="badge badge-red">Expired</span>'
+            : st.type === "expiring"
+            ? '<span class="badge badge-orange">Expiring Soon</span>'
+            : '<span class="badge badge-green">Valid</span>';
+        const link = x.Contract_PDF || x.AMC_CMC_PDF || x.Document_URL || x.Contract_Document || "";
+        const doc = link
+            ? '<a class="doc-btn doc-install" href="'+escapeAttr(link)+'" target="_blank" rel="noopener">📄 View Document</a>'
+            : '<span class="muted">No document</span>';
+        return `<tr>
+            <td><b>${escapeHtml(x.Contract_Type || "AMC/CMC")}</b></td>
+            <td>${escapeHtml(x.Contract_No || "")}</td>
+            <td>${escapeHtml(x.Department || "")}</td>
+            <td>${escapeHtml(x.Equipment || "")}</td>
+            <td>${escapeHtml(x.Vendor || "")}</td>
+            <td>${escapeHtml(formatDate(x.Start_Date || ""))}</td>
+            <td>${escapeHtml(formatDate(x.Expiry_Date || ""))}</td>
+            <td>${badge}</td>
+            <td>${doc}</td>
+        </tr>`;
+    }).join("");
+}
+
+function normalizeAmcCmcRow(row){
+    const pick = function(keys){
+        const normalized = {};
+        Object.keys(row).forEach(function(k){ normalized[normalizeHeader(k)] = row[k]; });
+        for(let i=0;i<keys.length;i++){
+            const k = normalizeHeader(keys[i]);
+            if(Object.prototype.hasOwnProperty.call(normalized,k)) return normalized[k];
+        }
+        return "";
+    };
+    return {
+        Contract_Type:String(pick(["Contract_Type","Type","AMC_CMC","AMC/CMC","Contract Type"])||"").trim(),
+        Contract_No:String(pick(["Contract_No","Contract_Number","Contract Number","AMC_CMC_No"])||"").trim(),
+        Department:String(pick(["Department"])||"").trim(),
+        Equipment:String(pick(["Equipment","Equipment_Name"])||"").trim(),
+        Model:String(pick(["Model"])||"").trim(),
+        Make:String(pick(["Make"])||"").trim(),
+        Vendor:String(pick(["Vendor","Service_Provider","Company"])||"").trim(),
+        Start_Date:pick(["Start_Date","Contract_Start_Date","AMC_Start_Date","CMC_Start_Date"]),
+        Expiry_Date:pick(["Expiry_Date","Expiry","Valid_Upto","Contract_Expiry_Date","AMC_CMC_Expiry_Date"]),
+        Contract_PDF:String(pick(["Contract_PDF","AMC_CMC_PDF","Document_URL","Contract_Document","Contract_Link"])||"").trim()
+    };
+}
+
+function handleAmcCmcExcelImport(event){
+    if(!currentUser || currentUser.role !== "admin"){
+        showToast("Only Administrator can import AMC / CMC records.");
+        return;
+    }
+    const file = event.target.files[0];
+    if(!file){ clearAmcCmcImport(); return; }
+    const reader = new FileReader();
+    reader.onload = function(e){
+        try{
+            const wb = XLSX.read(new Uint8Array(e.target.result), {type:"array", cellDates:true});
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws,{defval:""});
+            importedAmcCmc = rows.map(normalizeAmcCmcRow).filter(function(x){
+                return x.Contract_Type || x.Contract_No || x.Equipment || x.Contract_PDF;
+            });
+            document.getElementById("amccmcImportInfo").innerHTML = 'File: <b>'+escapeHtml(file.name)+'</b> | Rows found: <b>'+importedAmcCmc.length+'</b>';
+            renderAmcCmcImportPreview();
+        }catch(err){
+            importedAmcCmc=[];
+            document.getElementById("amccmcImportInfo").textContent="Unable to read this Excel file.";
+            showToast("AMC / CMC Excel import failed.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function renderAmcCmcImportPreview(){
+    const head=document.getElementById("amccmcPreviewHead"), body=document.getElementById("amccmcPreviewBody");
+    if(!head || !body) return;
+    const cols=["Contract_Type","Contract_No","Department","Equipment","Model","Make","Vendor","Start_Date","Expiry_Date","Contract_PDF"];
+    head.innerHTML='<tr>'+cols.map(function(c){return '<th>'+escapeHtml(c)+'</th>';}).join('')+'</tr>';
+    body.innerHTML=importedAmcCmc.slice(0,100).map(function(x){
+        return '<tr>'+cols.map(function(c){return '<td>'+escapeHtml(c.indexOf("Date")>=0 ? formatDate(x[c]) : (x[c]||""))+'</td>';}).join('')+'</tr>';
+    }).join("") || '<tr><td colspan="10" class="empty">No rows to preview.</td></tr>';
+}
+
+function saveImportedAmcCmc(){
+    if(!currentUser || currentUser.role !== "admin"){
+        showToast("Administrator access required."); return;
+    }
+    if(!importedAmcCmc.length){ showToast("Please select an AMC / CMC Excel file first."); return; }
+    saveAmcCmc(importedAmcCmc);
+    showToast(importedAmcCmc.length+" AMC / CMC records saved successfully.");
+    importedAmcCmc=[];
+    document.getElementById("amccmcImportInfo").textContent="Import saved. You can select another file.";
+    renderAmcCmcImportPreview();
+    renderAmcCmcTable();
+}
+
+function clearAmcCmcImport(){
+    importedAmcCmc=[];
+    const info=document.getElementById("amccmcImportInfo");
+    if(info) info.textContent="No file selected.";
+    renderAmcCmcImportPreview();
+}
+
+function downloadAmcCmcTemplate(){
+    if(!currentUser || currentUser.role !== "admin"){
+        showToast("Administrator access required."); return;
+    }
+    const headers=["Contract_Type","Contract_No","Department","Equipment","Model","Make","Vendor","Start_Date","Expiry_Date","Contract_PDF"];
+    const ws=XLSX.utils.aoa_to_sheet([headers,["AMC","AMC-001","Radiology","X-Ray","Model-1","Make-1","ABC Medical Services","01-01-2026","31-12-2026",""]]);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"AMC_CMC");
+    XLSX.writeFile(wb,"SmartBio_AMC_CMC_Template.xlsx");
+}
+
+/* =========================================================
    REPORTS
 ========================================================= */
+
+function getBreakdowns(){
+    try{
+        return JSON.parse(localStorage.getItem(BREAKDOWN_KEY)) || [];
+    }catch(e){
+        return [];
+    }
+}
+
+let importedBreakdowns = [];
+
+function breakdownStatusClass(status){
+    const s = String(status || "").toLowerCase();
+    if(s === "closed") return "badge-green";
+    if(s === "in progress" || s === "inprogress") return "badge-orange";
+    return "badge-red";
+}
+
+function renderBreakdownTable(){
+    const tbody = document.getElementById("breakdownTableBody");
+    if(!tbody) return;
+    const search = String(document.getElementById("breakdownSearch")?.value || "").toLowerCase();
+    const filter = String(document.getElementById("breakdownStatusFilter")?.value || "all").toLowerCase();
+    const data = getBreakdowns();
+    const rows = data.filter(function(b){
+        const hay = [b.Breakdown_ID,b.Asset_No,b.Department,b.Equipment,b.Model,b.Make,b.Serial_No,b.Breakdown_Date,b.Complaint,b.Status,b.Rectification_Date].join(" ").toLowerCase();
+        const status = String(b.Status || "").toLowerCase().replace(/\s+/g,"");
+        return (!search || hay.includes(search)) && (filter === "all" || status === filter);
+    });
+    if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="11" class="empty">No Breakdown records found.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.map(function(b){
+        const doc = b.Breakdown_PDF ? `<a class="doc-btn doc-install" href="${escapeHtml(b.Breakdown_PDF)}" target="_blank" rel="noopener">View Document</a>` : '<span class="muted">No document</span>';
+        const status = escapeHtml(b.Status || "Open");
+        return `<tr>
+            <td>${escapeHtml(b.Breakdown_ID || "")}</td>
+            <td>${escapeHtml(b.Asset_No || "")}</td>
+            <td>${escapeHtml(b.Department || "")}</td>
+            <td>${escapeHtml(b.Equipment || "")}</td>
+            <td>${escapeHtml(b.Model || "")}</td>
+            <td>${escapeHtml(b.Make || "")}</td>
+            <td>${escapeHtml(formatDate(b.Breakdown_Date) || "")}</td>
+            <td>${escapeHtml(b.Complaint || "")}</td>
+            <td><span class="badge ${breakdownStatusClass(b.Status)}">${status}</span></td>
+            <td>${escapeHtml(formatDate(b.Rectification_Date) || "")}</td>
+            <td>${doc}</td>
+        </tr>`;
+    }).join("");
+}
+
+function downloadBreakdownTemplate(){
+    if(!currentUser || currentUser.role !== "admin"){
+        showToast("Administrator access required."); return;
+    }
+    const headers = ["Breakdown_ID","Asset_No","Department","Equipment","Model","Make","Serial_No","Breakdown_Date","Complaint","Action_Taken","Status","Rectification_Date","Vendor_Engineer","Breakdown_PDF"];
+    const ws = XLSX.utils.aoa_to_sheet([headers,["BD-001","ASSET-001","ICU","Ventilator","Model-1","Make-1","SN-001","01-09-2026","Not powering on","Checked power supply","Open","","","https://..."]]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"Breakdown");
+    XLSX.writeFile(wb,"SmartBio_Breakdown_Template.xlsx");
+}
+
+function handleBreakdownExcelImport(event){
+    if(!currentUser || currentUser.role !== "admin"){
+        showToast("Administrator access required."); return;
+    }
+    const file = event.target.files && event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+        try{
+            const wb = XLSX.read(e.target.result,{type:"array"});
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            importedBreakdowns = XLSX.utils.sheet_to_json(sheet,{defval:""}).map(function(r){
+                return {
+                    Breakdown_ID:String(r.Breakdown_ID || r.breakdown_id || "").trim(),
+                    Asset_No:String(r.Asset_No || "").trim(),
+                    Department:String(r.Department || "").trim(),
+                    Equipment:String(r.Equipment || "").trim(),
+                    Model:String(r.Model || "").trim(),
+                    Make:String(r.Make || "").trim(),
+                    Serial_No:String(r.Serial_No || "").trim(),
+                    Breakdown_Date:r.Breakdown_Date || "",
+                    Complaint:String(r.Complaint || "").trim(),
+                    Action_Taken:String(r.Action_Taken || "").trim(),
+                    Status:String(r.Status || "Open").trim(),
+                    Rectification_Date:r.Rectification_Date || "",
+                    Vendor_Engineer:String(r.Vendor_Engineer || "").trim(),
+                    Breakdown_PDF:String(r.Breakdown_PDF || "").trim()
+                };
+            });
+            document.getElementById("breakdownImportInfo").textContent = importedBreakdowns.length + " Breakdown record(s) loaded.";
+            renderBreakdownPreview();
+        }catch(err){
+            importedBreakdowns=[];
+            document.getElementById("breakdownImportInfo").textContent = "Unable to read the Excel file.";
+            showToast("Breakdown Excel import failed.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function renderBreakdownPreview(){
+    const head=document.getElementById("breakdownPreviewHead");
+    const body=document.getElementById("breakdownPreviewBody");
+    if(!head || !body) return;
+    const cols=["Breakdown_ID","Asset_No","Department","Equipment","Model","Make","Serial_No","Breakdown_Date","Complaint","Action_Taken","Status","Rectification_Date","Vendor_Engineer","Breakdown_PDF"];
+    head.innerHTML="<tr>"+cols.map(c=>"<th>"+escapeHtml(c)+"</th>").join("")+"</tr>";
+    body.innerHTML=importedBreakdowns.map(function(r){ return "<tr>"+cols.map(c=>"<td>"+escapeHtml(r[c] || "")+"</td>").join("")+"</tr>"; }).join("");
+}
+
+function clearBreakdownImport(){
+    importedBreakdowns=[];
+    const input=document.querySelector('#page-breakdownImport input[type="file"]');
+    if(input) input.value="";
+    const info=document.getElementById("breakdownImportInfo"); if(info) info.textContent="No file selected.";
+    const h=document.getElementById("breakdownPreviewHead"); const b=document.getElementById("breakdownPreviewBody");
+    if(h) h.innerHTML=""; if(b) b.innerHTML="";
+}
+
+function saveImportedBreakdowns(){
+    if(!currentUser || currentUser.role !== "admin"){
+        showToast("Administrator access required."); return;
+    }
+    if(!importedBreakdowns.length){ showToast("Please import a Breakdown Excel file first."); return; }
+    localStorage.setItem(BREAKDOWN_KEY,JSON.stringify(importedBreakdowns));
+    showToast("Breakdown records saved successfully.");
+    renderBreakdownTable();
+}
+
 
 function renderReports(){
 
@@ -5568,6 +6715,10 @@ function refreshAll(){
 
     renderDocumentsTable();
 
+    if(currentUser && hasModuleAccess("license")){
+        renderLicenseTable();
+    }
+
     renderReports();
 
     if(
@@ -5586,6 +6737,11 @@ function refreshAll(){
 /* =========================================================
    SECURITY / HELPERS
 ========================================================= */
+
+function escapeAttr(value){
+    return escapeHtml(value).replace(/'/g,"&#39;");
+}
+
 
 function escapeHtml(value){
 
