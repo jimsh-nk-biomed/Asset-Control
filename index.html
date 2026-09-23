@@ -1617,6 +1617,20 @@ tr:hover td{
 
                         <div class="search-row">
 
+                            <input
+                                type="text"
+                                id="pmsSearch"
+                                placeholder="Search Asset No, Department, Equipment, Make, Serial No..."
+                                oninput="renderPmsTable()"
+                            >
+
+                            <select
+                                id="pmsDepartmentFilter"
+                                onchange="renderPmsTable()"
+                            >
+                                <option value="all">All Departments</option>
+                            </select>
+
                             <select
                                 id="pmsFilter"
                                 onchange="renderPmsTable()"
@@ -1691,6 +1705,20 @@ tr:hover td{
 
                         <div class="search-row">
 
+                            <input
+                                type="text"
+                                id="calSearch"
+                                placeholder="Search Asset No, Department, Equipment, Make, Serial No..."
+                                oninput="renderCalibrationTable()"
+                            >
+
+                            <select
+                                id="calDepartmentFilter"
+                                onchange="renderCalibrationTable()"
+                            >
+                                <option value="all">All Departments</option>
+                            </select>
+
                             <select
                                 id="calFilter"
                                 onchange="renderCalibrationTable()"
@@ -1758,9 +1786,35 @@ tr:hover td{
                         <div>
                             <h1>Documents</h1>
                             <p>
-                                Installation, PMS, Calibration, IQ, OQ and PQ documents
+                                Only documents permitted for the logged-in user are shown and exported.
                             </p>
                         </div>
+                        <button
+                            class="btn btn-primary"
+                            onclick="exportDocumentsExcel()"
+                        >
+                            📤 Export Accessible Documents
+                        </button>
+                    </div>
+
+                    <div class="card">
+
+                        <div class="search-row">
+                            <input
+                                type="text"
+                                id="documentSearch"
+                                placeholder="Search Asset No, Department, Equipment, Model, Make, Serial No..."
+                                oninput="renderDocumentsTable()"
+                            >
+
+                            <select
+                                id="documentDepartmentFilter"
+                                onchange="renderDocumentsTable()"
+                            >
+                                <option value="all">All Departments</option>
+                            </select>
+                        </div>
+
                     </div>
 
                     <div class="card">
@@ -2042,6 +2096,9 @@ tr:hover td{
                     <div class="page-header"><div><h1>Breakdown</h1><p>Breakdown complaints, repairs, costs and service reports.</p></div></div>
                     <div class="card"><div class="search-row">
                         <input type="text" id="breakdownSearch" placeholder="Search Breakdown ID, Asset Number, Department, Equipment..." oninput="renderBreakdownTable()">
+                        <select id="breakdownDepartmentFilter" onchange="renderBreakdownTable()">
+                            <option value="all">All Departments</option>
+                        </select>
                         <select id="breakdownStatusFilter" onchange="renderBreakdownTable()">
                             <option value="all">All Status</option><option value="open">Open</option><option value="inprogress">In Progress</option><option value="closed">Closed</option>
                         </select>
@@ -4559,6 +4616,39 @@ function closeEquipmentModal(){
 
 
 /* =========================================================
+   DEPARTMENT FILTERS
+========================================================= */
+
+function populateDepartmentFilter(selectId, data){
+
+    const select = document.getElementById(selectId);
+    if(!select) return;
+
+    const current = select.value || "all";
+
+    const departments = [...new Set(
+        (data || [])
+            .map(function(e){ return String(e.Department || "").trim(); })
+            .filter(Boolean)
+    )].sort(function(a,b){
+        return a.localeCompare(b);
+    });
+
+    select.innerHTML =
+        '<option value="all">All Departments</option>' +
+        departments.map(function(d){
+            return '<option value="' + escapeHtml(d) + '">' + escapeHtml(d) + '</option>';
+        }).join("");
+
+    if(departments.includes(current)){
+        select.value = current;
+    }else{
+        select.value = "all";
+    }
+}
+
+
+/* =========================================================
    PMS TABLE
 ========================================================= */
 
@@ -4573,11 +4663,40 @@ function renderPmsTable(){
         document.getElementById("pmsFilter")
         ?.value || "all";
 
+    const search =
+        (document.getElementById("pmsSearch")?.value || "")
+        .trim()
+        .toLowerCase();
+
     let data =
         getEquipment();
 
+    populateDepartmentFilter("pmsDepartmentFilter", data);
+
+    const department =
+        document.getElementById("pmsDepartmentFilter")?.value || "all";
+
     data =
         data.filter(function(e){
+
+            if(department !== "all" && String(e.Department || "").trim() !== department){
+                return false;
+            }
+
+            const searchable = [
+                e.Asset_No,
+                e.Department,
+                e.Equipment,
+                e.Make,
+                e.Serial_No,
+                e.Model
+            ]
+            .map(function(v){ return String(v || "").toLowerCase(); })
+            .join(" ");
+
+            if(search && !searchable.includes(search)){
+                return false;
+            }
 
             const s =
                 getStatus(e.PMS_Due_On);
@@ -4662,11 +4781,40 @@ function renderCalibrationTable(){
         document.getElementById("calFilter")
         ?.value || "all";
 
+    const search =
+        (document.getElementById("calSearch")?.value || "")
+        .trim()
+        .toLowerCase();
+
     let data =
         getEquipment();
 
+    populateDepartmentFilter("calDepartmentFilter", data);
+
+    const department =
+        document.getElementById("calDepartmentFilter")?.value || "all";
+
     data =
         data.filter(function(e){
+
+            if(department !== "all" && String(e.Department || "").trim() !== department){
+                return false;
+            }
+
+            const searchable = [
+                e.Asset_No,
+                e.Department,
+                e.Equipment,
+                e.Make,
+                e.Serial_No,
+                e.Model
+            ]
+            .map(function(v){ return String(v || "").toLowerCase(); })
+            .join(" ");
+
+            if(search && !searchable.includes(search)){
+                return false;
+            }
 
             const s =
                 getStatus(
@@ -4751,16 +4899,94 @@ function renderDocumentsTable(){
             "documentsTableBody"
         );
 
+    const searchInput =
+        document.getElementById("documentSearch");
+
+    const departmentFilter =
+        document.getElementById("documentDepartmentFilter");
+
+    const search =
+        String(searchInput ? searchInput.value : "")
+        .trim()
+        .toLowerCase();
+
+    /* Build Department list automatically from equipment data */
+    const allEquipment = getEquipment();
+
+    if(departmentFilter){
+
+        const currentDepartment = departmentFilter.value || "all";
+
+        const departments = Array.from(
+            new Set(
+                allEquipment
+                .map(function(e){
+                    return String(e.Department || "").trim();
+                })
+                .filter(Boolean)
+            )
+        ).sort(function(a,b){
+            return a.localeCompare(b);
+        });
+
+        departmentFilter.innerHTML =
+            '<option value="all">All Departments</option>' +
+            departments.map(function(dept){
+                return '<option value="' +
+                    escapeHtml(dept) +
+                    '">' +
+                    escapeHtml(dept) +
+                    '</option>';
+            }).join("");
+
+        if(departments.indexOf(currentDepartment) !== -1){
+            departmentFilter.value = currentDepartment;
+        }else{
+            departmentFilter.value = "all";
+        }
+    }
+
+    const selectedDepartment =
+        departmentFilter
+        ? String(departmentFilter.value || "all").toLowerCase()
+        : "all";
+
     const data =
-        getEquipment()
+        allEquipment
         .filter(function(e){
             return hasAccessibleDocument(e);
+        })
+        .filter(function(e){
+
+            if(
+                selectedDepartment !== "all" &&
+                String(e.Department || "").trim().toLowerCase() !== selectedDepartment
+            ){
+                return false;
+            }
+
+            if(!search) return true;
+
+            const searchable = [
+                e.Asset_No,
+                e.Department,
+                e.Equipment,
+                e.Model,
+                e.Make,
+                e.Serial_No
+            ]
+            .map(function(value){
+                return String(value || "").toLowerCase();
+            })
+            .join(" ");
+
+            return searchable.indexOf(search) !== -1;
         });
 
     if(!data.length){
 
         tbody.innerHTML =
-            '<tr><td colspan="6" class="empty">No documents available.</td></tr>';
+            '<tr><td colspan="6" class="empty">No documents found for the selected search/filter.</td></tr>';
 
         return;
     }
@@ -5769,141 +5995,212 @@ function downloadTemplate(){
    EXPORT EXCEL
 ========================================================= */
 
-function exportEquipmentExcel(){
-
-    const data =
-        getEquipment();
-
-    if(!data.length){
-
-        showToast(
-            "No equipment data to export."
-        );
-
-        return;
-    }
-
-    /*
-       Export follows the logged-in user's module permissions.
-       Administrator gets all columns and all document links.
-       Normal users get only the module information they are
-       authorized to access.
-    */
+function getCurrentModuleAccess(){
 
     const isAdmin =
         currentUser && currentUser.role === "admin";
 
-    const canInstallation =
-        isAdmin || hasModuleAccess("installation");
+    return {
+        installation: isAdmin || hasModuleAccess("installation"),
+        pms:          isAdmin || hasModuleAccess("pms"),
+        calibration:  isAdmin || hasModuleAccess("calibration"),
+        iq:           isAdmin || hasModuleAccess("iq"),
+        oq:           isAdmin || hasModuleAccess("oq"),
+        pq:           isAdmin || hasModuleAccess("pq")
+    };
+}
 
-    const canPms =
-        isAdmin || hasModuleAccess("pms");
 
-    const canCalibration =
-        isAdmin || hasModuleAccess("calibration");
+function exportEquipmentExcel(){
 
-    const canIq =
-        isAdmin || hasModuleAccess("iq");
+    const data = getEquipment();
 
-    const canOq =
-        isAdmin || hasModuleAccess("oq");
+    if(!data.length){
+        showToast("No equipment data to export.");
+        return;
+    }
 
-    const canPq =
-        isAdmin || hasModuleAccess("pq");
+    /*
+       STRICT MODULE EXPORT
+       --------------------
+       The exported Excel contains the common equipment identity fields
+       plus ONLY the fields belonging to modules granted to the logged-in
+       user. No unauthorized PMS / Calibration / IQ / OQ / PQ / Installation
+       columns or document links are included.
+    */
+    const access = getCurrentModuleAccess();
 
-    const exportData =
-        data.map(function(e){
+    const exportData = data.map(function(e){
 
-            const row = {
+        const row = {
+            Asset_No:   e.Asset_No || "",
+            Department: e.Department || "",
+            Equipment:  e.Equipment || "",
+            Model:      e.Model || "",
+            Make:       e.Make || "",
+            Serial_No:  e.Serial_No || ""
+        };
 
-                Asset_No:e.Asset_No || "",
-                Department:e.Department || "",
-                Equipment:e.Equipment || "",
-                Model:e.Model || "",
-                Make:e.Make || "",
-                Serial_No:e.Serial_No || ""
+        if(access.installation){
+            row.Installation_Date = formatDate(e.Installation_Date);
+            row.Installation_PDF  = e.Installation_PDF || "";
+        }
 
-            };
+        if(access.pms){
+            row.PMS_Done_On = formatDate(e.PMS_Done_On);
+            row.PMS_Due_On  = formatDate(e.PMS_Due_On);
+            row.PMS_PDF     = e.PMS_PDF || "";
+        }
 
-            /* Installation module */
-            if(canInstallation){
-                row.Installation_Date =
-                    formatDate(e.Installation_Date);
+        if(access.calibration){
+            row.Calibration_Done_On = formatDate(e.Calibration_Done_On);
+            row.Calibration_Due_On  = formatDate(e.Calibration_Due_On);
+            row.Calibration_PDF     = e.Calibration_PDF || "";
+        }
 
-                row.Installation_PDF =
-                    e.Installation_PDF || "";
-            }
+        if(access.iq){
+            row.IQ_PDF = e.IQ_PDF || "";
+        }
 
-            /* PMS module */
-            if(canPms){
-                row.PMS_Done_On =
-                    formatDate(e.PMS_Done_On);
+        if(access.oq){
+            row.OQ_PDF = e.OQ_PDF || "";
+        }
 
-                row.PMS_Due_On =
-                    formatDate(e.PMS_Due_On);
+        if(access.pq){
+            row.PQ_PDF = e.PQ_PDF || "";
+        }
 
-                row.PMS_PDF =
-                    e.PMS_PDF || "";
-            }
+        return row;
+    });
 
-            /* Calibration module */
-            if(canCalibration){
-                row.Calibration_Done_On =
-                    formatDate(e.Calibration_Done_On);
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
 
-                row.Calibration_Due_On =
-                    formatDate(e.Calibration_Due_On);
+    XLSX.utils.book_append_sheet(wb, ws, "Equipment");
 
-                row.Calibration_PDF =
-                    e.Calibration_PDF || "";
-            }
-
-            /* IQ module */
-            if(canIq){
-                row.IQ_PDF =
-                    e.IQ_PDF || "";
-            }
-
-            /* OQ module */
-            if(canOq){
-                row.OQ_PDF =
-                    e.OQ_PDF || "";
-            }
-
-            /* PQ module */
-            if(canPq){
-                row.PQ_PDF =
-                    e.PQ_PDF || "";
-            }
-
-            return row;
-
-        });
-
-    const ws =
-        XLSX.utils.json_to_sheet(
-            exportData
-        );
-
-    const wb =
-        XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(
-        wb,
-        ws,
-        "Equipment"
-    );
+    let suffix = "Accessible_Data";
+    const enabled = [];
+    Object.keys(access).forEach(function(key){
+        if(access[key]) enabled.push(key);
+    });
+    if(enabled.length){
+        suffix = enabled.join("_");
+    }
 
     XLSX.writeFile(
         wb,
-        "JIMSH-NK_Equipment_Export.xlsx"
+        "JIMSH-NK_Equipment_Export_" + suffix + ".xlsx"
     );
 
-    showToast(
-        "Equipment exported according to your module permissions."
-    );
-
+    showToast("Export completed using only your permitted module data.");
 }
+
+
+/* =========================================================
+   EXPORT ACCESSIBLE DOCUMENTS
+   Exports only document records/buttons that the current
+   user is authorized to access.
+========================================================= */
+
+function exportDocumentsExcel(){
+
+    const data = getEquipment();
+
+    if(!data.length){
+        showToast("No equipment data to export.");
+        return;
+    }
+
+    const access = getCurrentModuleAccess();
+
+    const exportData = [];
+
+    data.forEach(function(e){
+
+        const base = {
+            Asset_No:   e.Asset_No || "",
+            Department: e.Department || "",
+            Equipment:  e.Equipment || "",
+            Model:      e.Model || "",
+            Make:       e.Make || "",
+            Serial_No:  e.Serial_No || ""
+        };
+
+        /* Only add a document row when the user has the module
+           permission AND the corresponding document exists. */
+        if(access.installation && e.Installation_PDF){
+            exportData.push(Object.assign({}, base, {
+                Document_Type: "Installation",
+                Document_Date: formatDate(e.Installation_Date),
+                Document_PDF: e.Installation_PDF
+            }));
+        }
+
+        if(access.pms && e.PMS_PDF){
+            exportData.push(Object.assign({}, base, {
+                Document_Type: "PMS",
+                Document_Date: formatDate(e.PMS_Done_On),
+                Document_PDF: e.PMS_PDF
+            }));
+        }
+
+        if(access.calibration && e.Calibration_PDF){
+            exportData.push(Object.assign({}, base, {
+                Document_Type: "Calibration",
+                Document_Date: formatDate(e.Calibration_Done_On),
+                Document_PDF: e.Calibration_PDF
+            }));
+        }
+
+        if(access.iq && e.IQ_PDF){
+            exportData.push(Object.assign({}, base, {
+                Document_Type: "IQ",
+                Document_Date: "",
+                Document_PDF: e.IQ_PDF
+            }));
+        }
+
+        if(access.oq && e.OQ_PDF){
+            exportData.push(Object.assign({}, base, {
+                Document_Type: "OQ",
+                Document_Date: "",
+                Document_PDF: e.OQ_PDF
+            }));
+        }
+
+        if(access.pq && e.PQ_PDF){
+            exportData.push(Object.assign({}, base, {
+                Document_Type: "PQ",
+                Document_Date: "",
+                Document_PDF: e.PQ_PDF
+            }));
+        }
+    });
+
+    if(!exportData.length){
+        showToast("No accessible documents found for your assigned modules.");
+        return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Documents");
+
+    const enabled = [];
+    Object.keys(access).forEach(function(key){
+        if(access[key]) enabled.push(key);
+    });
+
+    XLSX.writeFile(
+        wb,
+        "JIMSH-NK_Accessible_Documents_" +
+        (enabled.length ? enabled.join("_") : "None") +
+        ".xlsx"
+    );
+
+    showToast("Documents exported using only your permitted modules.");
+}
+
 
 
 /* =========================================================
@@ -6023,7 +6320,56 @@ function downloadAmcCmcTemplate(){if(!currentUser||currentUser.role!=="admin"){s
 function getBreakdowns(){try{return JSON.parse(localStorage.getItem(BREAKDOWN_KEY))||[];}catch(e){return [];}}
 let importedBreakdowns=[];
 function breakdownStatusClass(status){const s=String(status||"").toLowerCase();if(s==="closed")return"badge-green";if(s==="in progress"||s==="inprogress")return"badge-orange";return"badge-red";}
-function renderBreakdownTable(){const tbody=document.getElementById("breakdownTableBody");if(!tbody)return;const search=String(document.getElementById("breakdownSearch")?.value||"").toLowerCase(),filter=String(document.getElementById("breakdownStatusFilter")?.value||"all").toLowerCase();const rows=getBreakdowns().filter(b=>{const hay=[b.Breakdown_ID,b.Complain_Date,b.Complain_Time,b.Asset_Number,b.Department,b.Equipment_Description,b.Model,b.Make,b.Serial_No,b.Nature_Of_Complain,b.Action_Taken,b.Spare_Used,b.Finish_Date,b.Finish_Time,b.Repairing_Cost,b.Downtime,b.Equipment_Status].join(" ").toLowerCase();const status=String(b.Equipment_Status||"").toLowerCase().replace(/\s+/g,"");return(!search||hay.includes(search))&&(filter==="all"||status===filter);});if(!rows.length){tbody.innerHTML='<tr><td colspan="18" class="empty">No Breakdown records found.</td></tr>';return;}tbody.innerHTML=rows.map(b=>{const doc=b.Breakdown_Service_Report_PDF?'<a class="doc-btn doc-install" href="'+escapeAttr(b.Breakdown_Service_Report_PDF)+'" target="_blank" rel="noopener">📄 Report</a>':'<span class="muted">-</span>';return `<tr><td>${escapeHtml(b.Breakdown_ID||"")}</td><td>${escapeHtml(formatDate(b.Complain_Date)||"")}</td><td>${escapeHtml(b.Complain_Time||"")}</td><td>${escapeHtml(b.Asset_Number||"")}</td><td>${escapeHtml(b.Department||"")}</td><td>${escapeHtml(b.Equipment_Description||"")}</td><td>${escapeHtml(b.Model||"")}</td><td>${escapeHtml(b.Make||"")}</td><td>${escapeHtml(b.Serial_No||"")}</td><td>${escapeHtml(b.Nature_Of_Complain||"")}</td><td>${escapeHtml(b.Action_Taken||"")}</td><td>${escapeHtml(b.Spare_Used||"")}</td><td>${escapeHtml(formatDate(b.Finish_Date)||"")}</td><td>${escapeHtml(b.Finish_Time||"")}</td><td>${escapeHtml(b.Repairing_Cost||"")}</td><td>${escapeHtml(b.Downtime||"")}</td><td><span class="badge ${breakdownStatusClass(b.Equipment_Status)}">${escapeHtml(b.Equipment_Status||"")}</span></td><td>${doc}</td></tr>`;}).join("");}
+function renderBreakdownTable(){
+    const tbody=document.getElementById("breakdownTableBody");
+    if(!tbody)return;
+
+    const search=String(document.getElementById("breakdownSearch")?.value||"").trim().toLowerCase();
+    const departmentFilter=document.getElementById("breakdownDepartmentFilter");
+    const filter=String(document.getElementById("breakdownStatusFilter")?.value||"all").toLowerCase();
+
+    /* Build Department list automatically from Breakdown records */
+    const allBreakdowns=getBreakdowns();
+    if(departmentFilter){
+        const currentDepartment=departmentFilter.value||"all";
+        const departments=Array.from(new Set(allBreakdowns.map(function(b){
+            return String(b.Department||"").trim();
+        }).filter(Boolean))).sort(function(a,b){return a.localeCompare(b);});
+
+        departmentFilter.innerHTML='<option value="all">All Departments</option>'+departments.map(function(dept){
+            return '<option value="'+escapeHtml(dept)+'">'+escapeHtml(dept)+'</option>';
+        }).join("");
+
+        if(departments.indexOf(currentDepartment)!==-1){
+            departmentFilter.value=currentDepartment;
+        }else{
+            departmentFilter.value="all";
+        }
+    }
+
+    const selectedDepartment=departmentFilter?String(departmentFilter.value||"all").trim().toLowerCase():"all";
+
+    const rows=allBreakdowns.filter(function(b){
+        const hay=[b.Breakdown_ID,b.Complain_Date,b.Complain_Time,b.Asset_Number,b.Department,b.Equipment_Description,b.Model,b.Make,b.Serial_No,b.Nature_Of_Complain,b.Action_Taken,b.Spare_Used,b.Finish_Date,b.Finish_Time,b.Repairing_Cost,b.Downtime,b.Equipment_Status].join(" ").toLowerCase();
+        const status=String(b.Equipment_Status||"").toLowerCase().replace(/\s+/g,"");
+        const dept=String(b.Department||"").trim().toLowerCase();
+
+        return (!search||hay.includes(search)) &&
+               (selectedDepartment==="all"||dept===selectedDepartment) &&
+               (filter==="all"||status===filter);
+    });
+
+    if(!rows.length){
+        tbody.innerHTML='<tr><td colspan="18" class="empty">No Breakdown records found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML=rows.map(function(b){
+        const doc=b.Breakdown_Service_Report_PDF?'<a class="doc-btn doc-install" href="'+escapeAttr(b.Breakdown_Service_Report_PDF)+'" target="_blank" rel="noopener">📄 Report</a>':'<span class="muted">-</span>';
+        return `<tr><td>${escapeHtml(b.Breakdown_ID||"")}</td><td>${escapeHtml(formatDate(b.Complain_Date)||"")}</td><td>${escapeHtml(b.Complain_Time||"")}</td><td>${escapeHtml(b.Asset_Number||"")}</td><td>${escapeHtml(b.Department||"")}</td><td>${escapeHtml(b.Equipment_Description||"")}</td><td>${escapeHtml(b.Model||"")}</td><td>${escapeHtml(b.Make||"")}</td><td>${escapeHtml(b.Serial_No||"")}</td><td>${escapeHtml(b.Nature_Of_Complain||"")}</td><td>${escapeHtml(b.Action_Taken||"")}</td><td>${escapeHtml(b.Spare_Used||"")}</td><td>${escapeHtml(formatDate(b.Finish_Date)||"")}</td><td>${escapeHtml(b.Finish_Time||"")}</td><td>${escapeHtml(b.Repairing_Cost||"")}</td><td>${escapeHtml(b.Downtime||"")}</td><td><span class="badge ${breakdownStatusClass(b.Equipment_Status)}">${escapeHtml(b.Equipment_Status||"")}</span></td><td>${doc}</td></tr>`;
+    }).join("");
+}
+
 function downloadBreakdownTemplate(){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}const headers=["Breakdown ID","Complain Date","Complain Time","Asset Number","Department","Equipment Description","Model","Make","Serial No","Nature Of Complain","Action Taken","Spare Used","Finish Date","Finish Time","Repairing Cost","Downtime","Equipment Status","Breakdown_Service_Report_PDF"];const ws=XLSX.utils.aoa_to_sheet([headers,["BD-001","01-09-2026","10:30","ASSET-001","ICU","Ventilator","Model-1","Make-1","SN-001","Not powering on","Power supply checked","Fuse","01-09-2026","12:00","500","1.5 hours","Closed",""]]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Breakdown");XLSX.writeFile(wb,"SmartBio_Breakdown_Template.xlsx");}
 function normalizeBreakdownRow(r){const pick=function(keys){const n={};Object.keys(r).forEach(k=>n[normalizeHeader(k)]=r[k]);for(let i=0;i<keys.length;i++){const k=normalizeHeader(keys[i]);if(Object.prototype.hasOwnProperty.call(n,k))return n[k];}return "";};return {Breakdown_ID:String(pick(["Breakdown ID","Breakdown_ID"])||"").trim(),Complain_Date:pick(["Complain Date","Complain_Date"]),Complain_Time:String(pick(["Complain Time","Complain_Time"])||"").trim(),Asset_Number:String(pick(["Asset Number","Asset_No"])||"").trim(),Department:String(pick(["Department"])||"").trim(),Equipment_Description:String(pick(["Equipment Description","Equipment"])||"").trim(),Model:String(pick(["Model"])||"").trim(),Make:String(pick(["Make"])||"").trim(),Serial_No:String(pick(["Serial No","Serial_No"])||"").trim(),Nature_Of_Complain:String(pick(["Nature Of Complain","Complaint"])||"").trim(),Action_Taken:String(pick(["Action Taken","Action_Taken"])||"").trim(),Spare_Used:String(pick(["Spare Used","Spare_Used"])||"").trim(),Finish_Date:pick(["Finish Date","Finish_Date"]),Finish_Time:String(pick(["Finish Time","Finish_Time"])||"").trim(),Repairing_Cost:String(pick(["Repairing Cost","Repairing_Cost"])||"").trim(),Downtime:String(pick(["Downtime"])||"").trim(),Equipment_Status:String(pick(["Equipment Status","Status"])||"").trim(),Breakdown_Service_Report_PDF:String(pick(["Breakdown_Service_Report_PDF"])||"").trim()};}
 function handleBreakdownExcelImport(event){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}const file=event.target.files&&event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array",cellDates:true});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});importedBreakdowns=rows.map(normalizeBreakdownRow).filter(x=>x.Breakdown_ID||x.Asset_Number||x.Department||x.Breakdown_Service_Report_PDF);document.getElementById("breakdownImportInfo").textContent=importedBreakdowns.length+" Breakdown record(s) loaded.";renderBreakdownPreview();}catch(err){importedBreakdowns=[];document.getElementById("breakdownImportInfo").textContent="Unable to read the Excel file.";showToast("Breakdown Excel import failed.");}};reader.readAsArrayBuffer(file);}
