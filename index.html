@@ -2040,25 +2040,33 @@ tr:hover td{
                 ================================================== -->
                 <section id="page-licenseImport" class="page admin-only-page">
                     <div class="page-header">
-                        <div><h1>License Import</h1><p>Import QA and AERB license records from Excel.</p></div>
-                        <button class="btn btn-secondary" onclick="downloadLicenseTemplate()">📄 Download License Template</button>
+                        <div>
+                            <h1>License Import from Excel</h1>
+                            <p>Import, preview and manage multiple QA / AERB license records at one time.</p>
+                        </div>
                     </div>
+
                     <div class="card">
                         <div class="import-box">
-                            <h3>Import License Register from Excel</h3>
-                            <p>Use the supplied License template with QA and AERB fields.</p>
-                            <label class="file-input">📥 Select License Excel
-                                <input type="file" accept=".xlsx,.xls,.csv" onchange="handleLicenseExcelImport(event)">
+                            <h3>📥 Select Excel File</h3>
+                            <p>Supported files: .xlsx, .xls and .csv</p>
+                            <label class="file-input">Choose License Excel File
+                                <input type="file" id="licenseExcelFile" accept=".xlsx,.xls,.csv" onchange="handleLicenseExcelImport(event)">
                             </label>
-                            <div class="preview-info" id="licenseImportInfo">No file selected.</div>
                         </div>
-                    </div>
-                    <div class="card">
-                        <div class="page-header" style="margin-bottom:12px;">
-                            <div><h2 style="font-size:18px;">License Import Preview</h2><p>Review the records before saving.</p></div>
-                            <div style="display:flex;gap:10px;"><button class="btn btn-secondary" onclick="clearLicenseImport()">Clear</button><button class="btn btn-primary" onclick="saveImportedLicenses()">✅ Save Licenses</button></div>
+                        <div class="preview-info" id="licenseImportInfo">No file selected.</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px;">
+                            <button class="btn btn-green" onclick="replaceLicensesFromImport()">✅ Replace Existing Licenses</button>
+                            <button class="btn btn-primary" onclick="addLicensesFromImport()">➕ Add to Existing Licenses</button>
+                            <button class="btn btn-secondary" onclick="clearLicenseImport()">🗑️ Clear</button>
+                            <button class="btn btn-secondary" onclick="downloadLicenseTemplate()">📄 Download Excel Template</button>
                         </div>
                         <div class="table-wrap"><table><thead id="licensePreviewHead"></thead><tbody id="licensePreviewBody"></tbody></table></div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-bottom:10px">Required / Supported Excel Columns</h3>
+                        <p class="muted" style="line-height:1.8"><b>Department</b>, Equipment, Model, Make, Serial No, QA Performed Date, QA Expiry Date, QA Performed By, AERB Done On, AERB Due On, QA_PDF, AERB_PDF</p>
                     </div>
                 </section>
 
@@ -2067,50 +2075,34 @@ tr:hover td{
                 ================================================== -->
                 <section id="page-amccmcImport" class="page admin-only-page">
                     <div class="page-header">
-                        <div><h1>AMC / CMC Import</h1><p>Import AMC / CMC contract records from Excel.</p></div>
-                        <button class="btn btn-secondary" onclick="downloadAmcCmcTemplate()">📄 Download AMC / CMC Template</button>
-                    </div>
-                    <div class="card">
-                        <div class="import-box">
-                            <h3>Import AMC / CMC Register from Excel</h3>
-                            <p>Use the supplied AMC / CMC template.</p>
-                            <label class="file-input">📥 Select AMC / CMC Excel
-                                <input type="file" accept=".xlsx,.xls,.csv" onchange="handleAmcCmcExcelImport(event)">
-                            </label>
-                            <div class="preview-info" id="amccmcImportInfo">No file selected.</div>
+                        <div>
+                            <h1>AMC / CMC Import from Excel</h1>
+                            <p>Import, preview and manage multiple AMC / CMC contract records at one time.</p>
                         </div>
                     </div>
+
                     <div class="card">
-                        <div class="page-header" style="margin-bottom:12px;">
-                            <div><h2 style="font-size:18px;">AMC / CMC Import Preview</h2><p>Review the records before saving.</p></div>
-                            <div style="display:flex;gap:10px;"><button class="btn btn-secondary" onclick="clearAmcCmcImport()">Clear</button><button class="btn btn-primary" onclick="saveImportedAmcCmc()">✅ Save AMC / CMC</button></div>
+                        <div class="import-box">
+                            <h3>📥 Select Excel File</h3>
+                            <p>Supported files: .xlsx, .xls and .csv</p>
+                            <label class="file-input">Choose AMC / CMC Excel File
+                                <input type="file" id="amccmcExcelFile" accept=".xlsx,.xls,.csv" onchange="handleAmcCmcExcelImport(event)">
+                            </label>
+                        </div>
+                        <div class="preview-info" id="amccmcImportInfo">No file selected.</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px;">
+                            <button class="btn btn-green" onclick="replaceAmcCmcFromImport()">✅ Replace Existing AMC / CMC</button>
+                            <button class="btn btn-primary" onclick="addAmcCmcFromImport()">➕ Add to Existing AMC / CMC</button>
+                            <button class="btn btn-secondary" onclick="clearAmcCmcImport()">🗑️ Clear</button>
+                            <button class="btn btn-secondary" onclick="downloadAmcCmcTemplate()">📄 Download Excel Template</button>
                         </div>
                         <div class="table-wrap"><table><thead id="amccmcPreviewHead"></thead><tbody id="amccmcPreviewBody"></tbody></table></div>
                     </div>
-                </section>
 
-                <!-- =================================================
-                     BREAKDOWN
-                ================================================== -->
-                <section id="page-breakdown" class="page">
-                    <div class="page-header"><div><h1>Breakdown</h1><p>Breakdown complaints, repairs, costs and service reports.</p></div></div>
-                    <div class="card"><div class="search-row">
-                        <input type="text" id="breakdownSearch" placeholder="Search Breakdown ID, Asset Number, Department, Equipment..." oninput="renderBreakdownTable()">
-                        <select id="breakdownDepartmentFilter" onchange="renderBreakdownTable()">
-                            <option value="all">All Departments</option>
-                        </select>
-                        <select id="breakdownStatusFilter" onchange="renderBreakdownTable()">
-                            <option value="all">All Status</option><option value="open">Open</option><option value="inprogress">In Progress</option><option value="closed">Closed</option>
-                        </select>
-                    </div></div>
-                    <div class="card"><div class="table-wrap"><table>
-                        <thead><tr>
-                            <th>Breakdown ID</th><th>Complain Date</th><th>Complain Time</th><th>Asset Number</th><th>Department</th>
-                            <th>Equipment Description</th><th>Model</th><th>Make</th><th>Serial No</th><th>Nature Of Complain</th>
-                            <th>Action Taken</th><th>Spare Used</th><th>Finish Date</th><th>Finish Time</th><th>Repairing Cost</th>
-                            <th>Downtime</th><th>Equipment Status</th><th>Service Report</th>
-                        </tr></thead><tbody id="breakdownTableBody"></tbody>
-                    </table></div></div>
+                    <div class="card">
+                        <h3 style="margin-bottom:10px">Required / Supported Excel Columns</h3>
+                        <p class="muted" style="line-height:1.8"><b>Department</b>, Company, Equipment, Contract Type, Contract Start Date, Contract End Date, Payment Terms, Contract Amount, PMS Freuqency, Contract_PDF</p>
+                    </div>
                 </section>
 
                 <!-- =================================================
@@ -2118,20 +2110,34 @@ tr:hover td{
                 ================================================== -->
                 <section id="page-breakdownImport" class="page admin-only-page">
                     <div class="page-header">
-                        <div><h1>Breakdown Import</h1><p>Import breakdown complaint and service records from Excel.</p></div>
-                        <button class="btn btn-secondary" onclick="downloadBreakdownTemplate()">📄 Download Breakdown Template</button>
+                        <div>
+                            <h1>Breakdown Import from Excel</h1>
+                            <p>Import, preview and manage multiple breakdown/service records at one time.</p>
+                        </div>
                     </div>
-                    <div class="card"><div class="import-box">
-                        <h3>Import Breakdown Register from Excel</h3><p>Use the supplied Breakdown template.</p>
-                        <label class="file-input">📥 Select Breakdown Excel
-                            <input type="file" accept=".xlsx,.xls,.csv" onchange="handleBreakdownExcelImport(event)">
-                        </label>
+
+                    <div class="card">
+                        <div class="import-box">
+                            <h3>📥 Select Excel File</h3>
+                            <p>Supported files: .xlsx, .xls and .csv</p>
+                            <label class="file-input">Choose Breakdown Excel File
+                                <input type="file" id="breakdownExcelFile" accept=".xlsx,.xls,.csv" onchange="handleBreakdownExcelImport(event)">
+                            </label>
+                        </div>
                         <div class="preview-info" id="breakdownImportInfo">No file selected.</div>
-                    </div></div>
-                    <div class="card"><div class="page-header" style="margin-bottom:12px;">
-                        <div><h2 style="font-size:18px;">Breakdown Import Preview</h2><p>Review the records before saving.</p></div>
-                        <div style="display:flex;gap:10px;"><button class="btn btn-secondary" onclick="clearBreakdownImport()">Clear</button><button class="btn btn-primary" onclick="saveImportedBreakdowns()">✅ Save Breakdown</button></div>
-                    </div><div class="table-wrap"><table><thead id="breakdownPreviewHead"></thead><tbody id="breakdownPreviewBody"></tbody></table></div></div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px;">
+                            <button class="btn btn-green" onclick="replaceBreakdownsFromImport()">✅ Replace Existing Breakdowns</button>
+                            <button class="btn btn-primary" onclick="addBreakdownsFromImport()">➕ Add to Existing Breakdowns</button>
+                            <button class="btn btn-secondary" onclick="clearBreakdownImport()">🗑️ Clear</button>
+                            <button class="btn btn-secondary" onclick="downloadBreakdownTemplate()">📄 Download Excel Template</button>
+                        </div>
+                        <div class="table-wrap"><table><thead id="breakdownPreviewHead"></thead><tbody id="breakdownPreviewBody"></tbody></table></div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-bottom:10px">Required / Supported Excel Columns</h3>
+                        <p class="muted" style="line-height:1.8"><b>Breakdown ID</b>, Complain Date, Complain Time, Asset Number, Department, Equipment Description, Model, Make, Serial No, Nature Of Complain, Action Taken, Spare Used, Finish Date, Finish Time, Repairing Cost, Downtime, Equipment Status, Breakdown_Service_Report_PDF</p>
+                    </div>
                 </section>
 
                 <!-- =================================================
@@ -2949,79 +2955,85 @@ function applySettingsToLogin(){
 
 function login(){
 
-    const username =
-        document.getElementById("loginUsername")
-        .value
-        .trim();
+    const usernameEl = document.getElementById("loginUsername");
+    const passwordEl = document.getElementById("loginPassword");
+    const error = document.getElementById("loginError");
 
-    const password =
-        document.getElementById("loginPassword")
-        .value;
+    const username = usernameEl ? String(usernameEl.value || "").trim() : "";
+    const password = passwordEl ? String(passwordEl.value || "") : "";
 
-    const error =
-        document.getElementById("loginError");
+    if(error) error.textContent = "";
 
-    error.textContent = "";
+    if(!username || !password){
+        if(error) error.textContent = "Please enter Login ID and Password.";
+        return false;
+    }
 
-    const users = getUsers();
+    let users = [];
+    try{
+        users = getUsers();
+        if(!Array.isArray(users)) users = [];
+    }catch(e){
+        users = [];
+    }
 
     const user = users.find(function(u){
-
-        return (
-            String(u.username).toLowerCase() ===
-            username.toLowerCase()
-        );
-
+        return String(u && u.username || "").trim().toLowerCase() === username.toLowerCase();
     });
 
     if(!user){
-
-        error.textContent =
-            "Invalid Login ID or Password.";
-
-        return;
+        if(error) error.textContent = "Invalid Login ID or Password.";
+        return false;
     }
 
-    if(user.status !== "active"){
-
-        error.textContent =
-            "This user account is inactive.";
-
-        return;
+    const userStatus = String(user.status || "active").trim().toLowerCase();
+    if(userStatus !== "active"){
+        if(error) error.textContent = "This user account is inactive.";
+        return false;
     }
 
-    if(user.password !== password){
-
-        error.textContent =
-            "Invalid Login ID or Password.";
-
-        return;
+    if(String(user.password == null ? "" : user.password) !== password){
+        if(error) error.textContent = "Invalid Login ID or Password.";
+        return false;
     }
 
     currentUser = user;
 
-    setupApplicationForUser();
+    /*
+       Open the application first so a problem in a non-critical
+       refresh/render function can never make the Login button appear dead.
+    */
+    const loginScreen = document.getElementById("loginScreen");
+    const app = document.getElementById("app");
+    const success = document.getElementById("loginSuccessModal");
 
-    document.getElementById("loginSuccessModal").style.display =
-        "flex";
+    if(success) success.style.display = "flex";
 
     setTimeout(function(){
+        if(success) success.style.display = "none";
+        if(loginScreen) loginScreen.style.display = "none";
+        if(app) app.style.display = "block";
 
-        document.getElementById("loginSuccessModal").style.display =
-            "none";
+        try{
+            setupApplicationForUser();
+        }catch(setupError){
+            console.error("SmartBio login setup error:", setupError);
+            try{
+                applySettingsToLogin();
+            }catch(ignore){ }
+            try{
+                openPage("dashboard");
+            }catch(ignore2){ }
+        }
+    }, 500);
 
-        document.getElementById("loginScreen").style.display =
-            "none";
+    try{
+        startAutoLogoutTimer();
+    }catch(timerError){
+        console.error("SmartBio auto logout error:", timerError);
+    }
 
-        document.getElementById("app").style.display =
-            "block";
-
-        openPage("dashboard");
-
-    },900);
-
-    startAutoLogoutTimer();
-
+    return false;
 }
 
 
@@ -6254,6 +6266,29 @@ function exportDocumentsExcel(){
 
 let importedLicenses = [];
 
+function parseDateValue(value){
+    if(value===null || value===undefined || value==="") return null;
+    if(value instanceof Date){
+        if(isNaN(value.getTime())) return null;
+        return new Date(value.getFullYear(),value.getMonth(),value.getDate());
+    }
+    if(typeof value === "number"){
+        try{
+            const d=XLSX.SSF.parse_date_code(value);
+            if(d) return new Date(d.y,d.m-1,d.d);
+        }catch(e){}
+    }
+    const s=String(value).trim();
+    if(!s) return null;
+    let m=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+    if(m) return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));
+    m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+    if(m) return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+    const d=new Date(s);
+    if(isNaN(d.getTime())) return null;
+    return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+}
+
 function getLicenses(){
     try{
         return JSON.parse(localStorage.getItem(LICENSES_KEY)) || [];
@@ -6264,63 +6299,20 @@ function getLicenses(){
 
 function saveLicenses(data){
     try{
-        const records = Array.isArray(data) ? data : [];
-        if(!records.length){
-            throw new Error("No License records available to save.");
-        }
-
-        const existing = getLicenses();
-
-        /*
-           Keep previously imported records and add the new records.
-           If the same License record is imported again, update that record
-           instead of creating a confusing duplicate.
-        */
-        const keyOf = function(x){
-            return [
-                x.Department,
-                x.Equipment,
-                x.Model,
-                x.Make,
-                x.Serial_No,
-                x.QA_Performed_Date,
-                x.AERB_Done_On
-            ].map(function(v){
-                return String(v == null ? "" : v).trim().toLowerCase();
-            }).join("|");
-        };
-
-        const merged = existing.slice();
-        records.forEach(function(record){
-            const key = keyOf(record);
-            const index = merged.findIndex(function(oldRecord){
-                return key && keyOf(oldRecord) === key;
+        const clean=(data||[]).map(function(x){
+            const row=Object.assign({},x);
+            ["QA_Performed_Date","QA_Expiry_Date","AERB_Done_On","AERB_Due_On"].forEach(function(k){
+                if(row[k] instanceof Date) row[k]=row[k].toISOString();
             });
-            if(index >= 0){
-                merged[index] = Object.assign({}, merged[index], record);
-            }else{
-                merged.push(record);
-            }
+            return row;
         });
-
-        const payload = JSON.stringify(merged);
-        localStorage.setItem(LICENSES_KEY, payload);
-
-        /* Force a real read-back from browser storage before reporting success. */
-        const raw = localStorage.getItem(LICENSES_KEY);
-        if(!raw){
-            throw new Error("License data was not written to browser storage.");
-        }
-
-        const saved = JSON.parse(raw);
-        if(!Array.isArray(saved) || saved.length !== merged.length){
-            throw new Error("License data could not be verified after saving.");
-        }
-
+        localStorage.setItem(LICENSES_KEY,JSON.stringify(clean));
+        const saved=JSON.parse(localStorage.getItem(LICENSES_KEY)||"[]");
+        if(saved.length!==clean.length) throw new Error("Saved record count does not match imported record count.");
         return true;
-    }catch(err){
-        console.error("License save error:", err);
-        showToast(err.message || "Unable to save License records.");
+    }catch(error){
+        console.error("License save failed:",error);
+        showToast("License data could not be saved: "+(error.message||"storage error"));
         return false;
     }
 }
@@ -6369,20 +6361,14 @@ function handleLicenseExcelImport(event){
     reader.onload=function(e){
         try{
             const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array",cellDates:true});
-            const sheet=wb.Sheets[wb.SheetNames[0]];
-            const rows=XLSX.utils.sheet_to_json(sheet,{defval:"",raw:true});
-            importedLicenses=rows.map(normalizeLicenseRow).filter(function(x){
-                return Object.values(x).some(function(v){
-                    return v!==null && v!==undefined && String(v).trim()!=="";
-                });
-            });
-            document.getElementById("licenseImportInfo").innerHTML='File: <b>'+escapeHtml(file.name)+'</b> | Rows found: <b>'+importedLicenses.length+'</b>';
+            const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+            importedLicenses=rows.map(normalizeLicenseRow).filter(function(x){return x.Department||x.Equipment||x.Serial_No||x.QA_PDF||x.AERB_PDF;});
+            const info=document.getElementById("licenseImportInfo");
+            if(info) info.innerHTML='File: <b>'+escapeHtml(file.name)+'</b> | Rows found: <b>'+importedLicenses.length+'</b>';
             renderLicenseImportPreview();
-            if(!importedLicenses.length) showToast("No usable License records were found. Please check the column headings.");
         }catch(err){
-            console.error("License Excel import error:",err);
-            importedLicenses=[];
-            document.getElementById("licenseImportInfo").textContent="Unable to read this Excel file.";
+            console.error(err); importedLicenses=[];
+            const info=document.getElementById("licenseImportInfo"); if(info) info.textContent="Unable to read this Excel file.";
             showToast("License Excel import failed.");
         }
     };
@@ -6390,35 +6376,32 @@ function handleLicenseExcelImport(event){
 }
 function renderLicenseImportPreview(){const h=document.getElementById("licensePreviewHead"),b=document.getElementById("licensePreviewBody");if(!h||!b)return;const cols=["Department","Equipment","Model","Make","Serial_No","QA_Performed_Date","QA_Expiry_Date","QA_Performed_By","AERB_Done_On","AERB_Due_On","QA_PDF","AERB_PDF"];h.innerHTML='<tr>'+cols.map(c=>'<th>'+escapeHtml(c)+'</th>').join('')+'</tr>';b.innerHTML=importedLicenses.slice(0,100).map(x=>'<tr>'+cols.map(c=>'<td>'+escapeHtml(c.indexOf("Date")>=0||c.indexOf("On")>=0||c.indexOf("Due")>=0||c.indexOf("Expiry")>=0?formatDate(x[c]):(x[c]||""))+'</td>').join('')+'</tr>').join('')||'<tr><td colspan="12" class="empty">No rows to preview.</td></tr>';}
 function saveImportedLicenses(){
-    if(!currentUser||currentUser.role!=="admin"){
-        showToast("Administrator access required.");
-        return;
-    }
-    if(!importedLicenses.length){
-        showToast("Please select a License Excel file first.");
-        return;
-    }
-
-    const count = importedLicenses.length;
-    if(!saveLicenses(importedLicenses)) return;
-
-    /* Confirm the exact saved data is available to the License tab. */
-    const saved = getLicenses();
-    if(!saved.length){
-        showToast("License records were not found after saving. Please try again.");
-        return;
-    }
-
-    importedLicenses = [];
-    const info = document.getElementById("licenseImportInfo");
-    if(info){
-        info.innerHTML = "<b>" + count + "</b> License record(s) saved successfully. Total License records: <b>" + saved.length + "</b>.";
-    }
-    renderLicenseImportPreview();
-    renderLicenseTable();
-    showToast(count + " License record(s) saved. Open the License tab to view them.");
+    if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    if(!importedLicenses.length){showToast("Please select an Excel file first.");return;}
+    if(saveLicenses(importedLicenses)){showToast(importedLicenses.length+" license records saved successfully.");clearLicenseImport();renderLicenseTable();}
 }
-function clearLicenseImport(){importedLicenses=[];const i=document.getElementById("licenseImportInfo");if(i)i.textContent="No file selected.";const f=document.querySelector('#page-licenseImport input[type="file"]');if(f)f.value="";renderLicenseImportPreview();}
+function replaceLicensesFromImport(){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Only Administrator can import license records.");return;}
+    if(!importedLicenses.length){showToast("Please select an Excel file first.");return;}
+    if(!confirm("This will replace all existing license records. Continue?")) return;
+    if(saveLicenses(importedLicenses)){const count=importedLicenses.length; clearLicenseImport(); renderLicenseTable(); showToast(count+" license records imported.");}
+}
+
+function addLicensesFromImport(){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Only Administrator can import license records.");return;}
+    if(!importedLicenses.length){showToast("Please select an Excel file first.");return;}
+    const existing=getLicenses(), map=new Map();
+    existing.forEach(function(x){const key=[x.Department,x.Equipment,x.Model,x.Make,x.Serial_No].join("|").toLowerCase();map.set(key,x);});
+    importedLicenses.forEach(function(x){const key=[x.Department,x.Equipment,x.Model,x.Make,x.Serial_No].join("|").toLowerCase();map.set(key,x);});
+    if(saveLicenses(Array.from(map.values()))){const count=importedLicenses.length; clearLicenseImport(); renderLicenseTable(); showToast(count+" imported license records processed.");}
+}
+
+function clearLicenseImport(){
+    importedLicenses=[];
+    const i=document.getElementById("licenseImportInfo"); if(i)i.textContent="No file selected.";
+    const f=document.getElementById("licenseExcelFile"); if(f)f.value="";
+    renderLicenseImportPreview();
+}
 function downloadLicenseTemplate(){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}const headers=["Department","Equipment","Model","Make","Serial No","QA Performed Date","QA Expiry Date","QA Performed By","AERB Done On","AERB Due On","QA_PDF","AERB_PDF"];const ws=XLSX.utils.aoa_to_sheet([headers,["Radiology","X-Ray","Model-1","Make-1","SN-001","01-01-2026","31-12-2026","Engineer","01-01-2026","31-12-2026","",""]]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"License");XLSX.writeFile(wb,"SmartBio_License_Template.xlsx");}
 
 /* =========================================================
@@ -6436,7 +6419,23 @@ function getAmcCmc(){
 }
 
 function saveAmcCmc(data){
-    localStorage.setItem(AMCCMC_KEY, JSON.stringify(data || []));
+    try{
+        const clean=(data||[]).map(function(x){
+            const row=Object.assign({},x);
+            ["Contract_Start_Date","Contract_End_Date"].forEach(function(k){
+                if(row[k] instanceof Date) row[k]=row[k].toISOString();
+            });
+            return row;
+        });
+        localStorage.setItem(AMCCMC_KEY,JSON.stringify(clean));
+        const saved=JSON.parse(localStorage.getItem(AMCCMC_KEY)||"[]");
+        if(saved.length!==clean.length) throw new Error("Saved record count does not match imported record count.");
+        return true;
+    }catch(error){
+        console.error("AMC / CMC save failed:",error);
+        showToast("AMC / CMC data could not be saved: "+(error.message||"storage error"));
+        return false;
+    }
 }
 
 function amcCmcStatus(item){
@@ -6461,10 +6460,47 @@ function renderAmcCmcTable(){
     tbody.innerHTML=rows.map(x=>{const st=amcCmcStatus(x).type,badge=st==="expired"?'<span class="badge badge-red">Expired</span>':st==="expiring"?'<span class="badge badge-orange">Expiring Soon</span>':'<span class="badge badge-green">Valid</span>';const doc=x.Contract_PDF?'<a class="doc-btn doc-install" href="'+escapeAttr(x.Contract_PDF)+'" target="_blank" rel="noopener">📄 Contract</a>':'<span class="muted">-</span>';return `<tr><td>${escapeHtml(x.Department||"")}</td><td>${escapeHtml(x.Company||"")}</td><td>${escapeHtml(x.Equipment||"")}</td><td>${escapeHtml(x.Contract_Type||"")}</td><td>${escapeHtml(formatDate(x.Contract_Start_Date||""))}</td><td>${escapeHtml(formatDate(x.Contract_End_Date||""))}<br>${badge}</td><td>${escapeHtml(x.Payment_Terms||"")}</td><td>${escapeHtml(x.Contract_Amount||"")}</td><td>${escapeHtml(x.PMS_Frequency||"")}</td><td>${doc}</td><td>${badge}</td></tr>`;}).join("");
 }
 function normalizeAmcCmcRow(row){const pick=function(keys){const n={};Object.keys(row).forEach(k=>n[normalizeHeader(k)]=row[k]);for(let i=0;i<keys.length;i++){const k=normalizeHeader(keys[i]);if(Object.prototype.hasOwnProperty.call(n,k))return n[k];}return "";};return {Department:String(pick(["Department"])||"").trim(),Company:String(pick(["Company"])||"").trim(),Equipment:String(pick(["Equipment"])||"").trim(),Contract_Type:String(pick(["Contract Type","Contract_Type"])||"").trim(),Contract_Start_Date:pick(["Contract Start Date","Contract_Start_Date"]),Contract_End_Date:pick(["Contract End Date","Contract_End_Date"]),Payment_Terms:String(pick(["Payment Terms","Payment_Terms"])||"").trim(),Contract_Amount:String(pick(["Contract Amount","Contract_Amount"])||"").trim(),PMS_Frequency:String(pick(["PMS Freuqency","PMS Frequency","PMS_Frequency"])||"").trim(),Contract_PDF:String(pick(["Contract_PDF"])||"").trim()};}
-function handleAmcCmcExcelImport(event){if(!currentUser||currentUser.role!=="admin"){showToast("Only Administrator can import AMC / CMC records.");return;}const file=event.target.files&&event.target.files[0];if(!file){clearAmcCmcImport();return;}const reader=new FileReader();reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array",cellDates:true});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});importedAmcCmc=rows.map(normalizeAmcCmcRow).filter(x=>x.Department||x.Company||x.Equipment||x.Contract_PDF);document.getElementById("amccmcImportInfo").innerHTML='File: <b>'+escapeHtml(file.name)+'</b> | Rows found: <b>'+importedAmcCmc.length+'</b>';renderAmcCmcImportPreview();}catch(err){importedAmcCmc=[];document.getElementById("amccmcImportInfo").textContent="Unable to read this Excel file.";showToast("AMC / CMC Excel import failed.");}};reader.readAsArrayBuffer(file);}
+function handleAmcCmcExcelImport(event){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Only Administrator can import AMC / CMC records.");return;}
+    const file=event.target.files&&event.target.files[0]; if(!file){clearAmcCmcImport();return;}
+    const reader=new FileReader();
+    reader.onload=function(e){try{
+        const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array",cellDates:true});
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+        importedAmcCmc=rows.map(normalizeAmcCmcRow).filter(function(x){return x.Department||x.Company||x.Equipment||x.Contract_PDF;});
+        const info=document.getElementById("amccmcImportInfo"); if(info)info.innerHTML='File: <b>'+escapeHtml(file.name)+'</b> | Rows found: <b>'+importedAmcCmc.length+'</b>';
+        renderAmcCmcImportPreview();
+    }catch(err){console.error(err);importedAmcCmc=[];const info=document.getElementById("amccmcImportInfo");if(info)info.textContent="Unable to read this Excel file.";showToast("AMC / CMC Excel import failed.");}};
+    reader.readAsArrayBuffer(file);
+}
 function renderAmcCmcImportPreview(){const h=document.getElementById("amccmcPreviewHead"),b=document.getElementById("amccmcPreviewBody");if(!h||!b)return;const cols=["Department","Company","Equipment","Contract_Type","Contract_Start_Date","Contract_End_Date","Payment_Terms","Contract_Amount","PMS_Frequency","Contract_PDF"];h.innerHTML='<tr>'+cols.map(c=>'<th>'+escapeHtml(c)+'</th>').join('')+'</tr>';b.innerHTML=importedAmcCmc.slice(0,100).map(x=>'<tr>'+cols.map(c=>'<td>'+escapeHtml(c.indexOf("Date")>=0?formatDate(x[c]):(x[c]||""))+'</td>').join('')+'</tr>').join('')||'<tr><td colspan="10" class="empty">No rows to preview.</td></tr>';}
-function saveImportedAmcCmc(){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}if(!importedAmcCmc.length){showToast("Please select an AMC / CMC Excel file first.");return;}saveAmcCmc(importedAmcCmc);showToast(importedAmcCmc.length+" AMC / CMC records saved successfully.");importedAmcCmc=[];document.getElementById("amccmcImportInfo").textContent="Import saved. You can select another file.";renderAmcCmcImportPreview();renderAmcCmcTable();}
-function clearAmcCmcImport(){importedAmcCmc=[];const i=document.getElementById("amccmcImportInfo");if(i)i.textContent="No file selected.";const f=document.querySelector('#page-amccmcImport input[type="file"]');if(f)f.value="";renderAmcCmcImportPreview();}
+function saveImportedAmcCmc(){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    if(!importedAmcCmc.length){showToast("Please select an Excel file first.");return;}
+    if(saveAmcCmc(importedAmcCmc)){showToast(importedAmcCmc.length+" AMC / CMC records saved successfully.");clearAmcCmcImport();renderAmcCmcTable();}
+}
+function replaceAmcCmcFromImport(){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Only Administrator can import AMC / CMC records.");return;}
+    if(!importedAmcCmc.length){showToast("Please select an Excel file first.");return;}
+    if(!confirm("This will replace all existing AMC / CMC records. Continue?")) return;
+    if(saveAmcCmc(importedAmcCmc)){const count=importedAmcCmc.length;clearAmcCmcImport();renderAmcCmcTable();showToast(count+" AMC / CMC records imported.");}
+}
+
+function addAmcCmcFromImport(){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Only Administrator can import AMC / CMC records.");return;}
+    if(!importedAmcCmc.length){showToast("Please select an Excel file first.");return;}
+    const existing=getAmcCmc(),map=new Map();
+    existing.forEach(function(x){const key=[x.Department,x.Company,x.Equipment,x.Contract_Type,x.Contract_Start_Date,x.Contract_End_Date].join("|").toLowerCase();map.set(key,x);});
+    importedAmcCmc.forEach(function(x){const key=[x.Department,x.Company,x.Equipment,x.Contract_Type,x.Contract_Start_Date,x.Contract_End_Date].join("|").toLowerCase();map.set(key,x);});
+    if(saveAmcCmc(Array.from(map.values()))){const count=importedAmcCmc.length;clearAmcCmcImport();renderAmcCmcTable();showToast(count+" imported AMC / CMC records processed.");}
+}
+
+function clearAmcCmcImport(){
+    importedAmcCmc=[];
+    const i=document.getElementById("amccmcImportInfo");if(i)i.textContent="No file selected.";
+    const f=document.getElementById("amccmcExcelFile");if(f)f.value="";
+    renderAmcCmcImportPreview();
+}
 function downloadAmcCmcTemplate(){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}const headers=["Department","Company","Equipment","Contract Type","Contract Start Date","Contract End Date","Payment Terms","Contract Amount","PMS Freuqency","Contract_PDF"];const ws=XLSX.utils.aoa_to_sheet([headers,["Radiology","ABC Medical Services","X-Ray","AMC","01-01-2026","31-12-2026","Quarterly","100000","Quarterly",""]]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"AMC_CMC");XLSX.writeFile(wb,"SmartBio_AMC_CMC_Template.xlsx");}
 
 /* =========================================================
@@ -6526,10 +6562,67 @@ function renderBreakdownTable(){
 
 function downloadBreakdownTemplate(){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}const headers=["Breakdown ID","Complain Date","Complain Time","Asset Number","Department","Equipment Description","Model","Make","Serial No","Nature Of Complain","Action Taken","Spare Used","Finish Date","Finish Time","Repairing Cost","Downtime","Equipment Status","Breakdown_Service_Report_PDF"];const ws=XLSX.utils.aoa_to_sheet([headers,["BD-001","01-09-2026","10:30","ASSET-001","ICU","Ventilator","Model-1","Make-1","SN-001","Not powering on","Power supply checked","Fuse","01-09-2026","12:00","500","1.5 hours","Closed",""]]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Breakdown");XLSX.writeFile(wb,"SmartBio_Breakdown_Template.xlsx");}
 function normalizeBreakdownRow(r){const pick=function(keys){const n={};Object.keys(r).forEach(k=>n[normalizeHeader(k)]=r[k]);for(let i=0;i<keys.length;i++){const k=normalizeHeader(keys[i]);if(Object.prototype.hasOwnProperty.call(n,k))return n[k];}return "";};return {Breakdown_ID:String(pick(["Breakdown ID","Breakdown_ID"])||"").trim(),Complain_Date:pick(["Complain Date","Complain_Date"]),Complain_Time:String(pick(["Complain Time","Complain_Time"])||"").trim(),Asset_Number:String(pick(["Asset Number","Asset_No"])||"").trim(),Department:String(pick(["Department"])||"").trim(),Equipment_Description:String(pick(["Equipment Description","Equipment"])||"").trim(),Model:String(pick(["Model"])||"").trim(),Make:String(pick(["Make"])||"").trim(),Serial_No:String(pick(["Serial No","Serial_No"])||"").trim(),Nature_Of_Complain:String(pick(["Nature Of Complain","Complaint"])||"").trim(),Action_Taken:String(pick(["Action Taken","Action_Taken"])||"").trim(),Spare_Used:String(pick(["Spare Used","Spare_Used"])||"").trim(),Finish_Date:pick(["Finish Date","Finish_Date"]),Finish_Time:String(pick(["Finish Time","Finish_Time"])||"").trim(),Repairing_Cost:String(pick(["Repairing Cost","Repairing_Cost"])||"").trim(),Downtime:String(pick(["Downtime"])||"").trim(),Equipment_Status:String(pick(["Equipment Status","Status"])||"").trim(),Breakdown_Service_Report_PDF:String(pick(["Breakdown_Service_Report_PDF"])||"").trim()};}
-function handleBreakdownExcelImport(event){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}const file=event.target.files&&event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array",cellDates:true});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});importedBreakdowns=rows.map(normalizeBreakdownRow).filter(x=>x.Breakdown_ID||x.Asset_Number||x.Department||x.Breakdown_Service_Report_PDF);document.getElementById("breakdownImportInfo").textContent=importedBreakdowns.length+" Breakdown record(s) loaded.";renderBreakdownPreview();}catch(err){importedBreakdowns=[];document.getElementById("breakdownImportInfo").textContent="Unable to read the Excel file.";showToast("Breakdown Excel import failed.");}};reader.readAsArrayBuffer(file);}
+function handleBreakdownExcelImport(event){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    const file=event.target.files&&event.target.files[0]; if(!file){clearBreakdownImport();return;}
+    const reader=new FileReader();
+    reader.onload=function(e){try{
+        const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array",cellDates:true});
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+        importedBreakdowns=rows.map(normalizeBreakdownRow).filter(function(x){return x.Breakdown_ID||x.Asset_Number||x.Department||x.Breakdown_Service_Report_PDF;});
+        const info=document.getElementById("breakdownImportInfo");if(info)info.innerHTML='File: <b>'+escapeHtml(file.name)+'</b> | Rows found: <b>'+importedBreakdowns.length+'</b>';
+        renderBreakdownPreview();
+    }catch(err){console.error(err);importedBreakdowns=[];const info=document.getElementById("breakdownImportInfo");if(info)info.textContent="Unable to read this Excel file.";showToast("Breakdown Excel import failed.");}};
+    reader.readAsArrayBuffer(file);
+}
 function renderBreakdownPreview(){const h=document.getElementById("breakdownPreviewHead"),b=document.getElementById("breakdownPreviewBody");if(!h||!b)return;const cols=["Breakdown_ID","Complain_Date","Complain_Time","Asset_Number","Department","Equipment_Description","Model","Make","Serial_No","Nature_Of_Complain","Action_Taken","Spare_Used","Finish_Date","Finish_Time","Repairing_Cost","Downtime","Equipment_Status","Breakdown_Service_Report_PDF"];h.innerHTML='<tr>'+cols.map(c=>'<th>'+escapeHtml(c)+'</th>').join('')+'</tr>';b.innerHTML=importedBreakdowns.slice(0,100).map(x=>'<tr>'+cols.map(c=>'<td>'+escapeHtml(c.indexOf("Date")>=0?formatDate(x[c]):(x[c]||""))+'</td>').join('')+'</tr>').join('')||'<tr><td colspan="18" class="empty">No rows to preview.</td></tr>';}
-function clearBreakdownImport(){importedBreakdowns=[];const f=document.querySelector('#page-breakdownImport input[type="file"]');if(f)f.value="";const i=document.getElementById("breakdownImportInfo");if(i)i.textContent="No file selected.";renderBreakdownPreview();}
-function saveImportedBreakdowns(){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}if(!importedBreakdowns.length){showToast("Please import a Breakdown Excel file first.");return;}localStorage.setItem(BREAKDOWN_KEY,JSON.stringify(importedBreakdowns));showToast("Breakdown records saved successfully.");renderBreakdownTable();}
+function replaceBreakdownsFromImport(){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    if(!importedBreakdowns.length){showToast("Please select an Excel file first.");return;}
+    if(!confirm("This will replace all existing Breakdown records. Continue?")) return;
+    if(saveBreakdowns(importedBreakdowns)){const count=importedBreakdowns.length;clearBreakdownImport();renderBreakdownTable();showToast(count+" Breakdown records imported and saved successfully.");}
+}
+
+function addBreakdownsFromImport(){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    if(!importedBreakdowns.length){showToast("Please select an Excel file first.");return;}
+    const existing=getBreakdowns(),map=new Map();
+    existing.forEach(function(x){const key=String(x.Breakdown_ID||[x.Asset_Number,x.Complain_Date,x.Complain_Time,x.Department].join("|")).toLowerCase();map.set(key,x);});
+    importedBreakdowns.forEach(function(x){const key=String(x.Breakdown_ID||[x.Asset_Number,x.Complain_Date,x.Complain_Time,x.Department].join("|")).toLowerCase();map.set(key,x);});
+    if(saveBreakdowns(Array.from(map.values()))){const count=importedBreakdowns.length;clearBreakdownImport();renderBreakdownTable();showToast(count+" imported Breakdown records processed.");}
+}
+
+function clearBreakdownImport(){
+    importedBreakdowns=[];
+    const f=document.getElementById("breakdownExcelFile");if(f)f.value="";
+    const i=document.getElementById("breakdownImportInfo");if(i)i.textContent="No file selected.";
+    renderBreakdownPreview();
+}
+function saveBreakdowns(data){
+    try{
+        const clean=(data||[]).map(function(x){
+            const row=Object.assign({},x);
+            ["Complain_Date","Finish_Date"].forEach(function(k){
+                if(row[k] instanceof Date) row[k]=row[k].toISOString();
+            });
+            return row;
+        });
+        localStorage.setItem(BREAKDOWN_KEY,JSON.stringify(clean));
+        const saved=JSON.parse(localStorage.getItem(BREAKDOWN_KEY)||"[]");
+        if(saved.length!==clean.length) throw new Error("Saved record count does not match imported record count.");
+        return true;
+    }catch(error){
+        console.error("Breakdown save failed:",error);
+        showToast("Breakdown data could not be saved: "+(error.message||"storage error"));
+        return false;
+    }
+}
+
+function saveImportedBreakdowns(){
+    if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    if(!importedBreakdowns.length){showToast("Please select an Excel file first.");return;}
+    if(saveBreakdowns(importedBreakdowns)){showToast(importedBreakdowns.length+" Breakdown records saved successfully.");clearBreakdownImport();renderBreakdownTable();}
+}
 
 function renderReports(){
 
@@ -6755,8 +6848,17 @@ function refreshAll(){
 
     renderDocumentsTable();
 
+    /* Keep all register pages synchronized after any import/save. */
     if(currentUser && hasModuleAccess("license")){
         renderLicenseTable();
+    }
+
+    if(currentUser && hasModuleAccess("amccmc")){
+        renderAmcCmcTable();
+    }
+
+    if(currentUser && hasModuleAccess("breakdown")){
+        renderBreakdownTable();
     }
 
     renderReports();
