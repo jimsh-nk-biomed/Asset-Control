@@ -6265,14 +6265,58 @@ function getLicenses(){
 function saveLicenses(data){
     try{
         const records = Array.isArray(data) ? data : [];
-        const existing = getLicenses();
-        const merged = existing.concat(records);
-        localStorage.setItem(LICENSES_KEY, JSON.stringify(merged));
-        // Verify immediately so a failed browser storage write is not reported as success.
-        const saved = getLicenses();
-        if(saved.length < merged.length){
-            throw new Error("License records could not be stored in this browser.");
+        if(!records.length){
+            throw new Error("No License records available to save.");
         }
+
+        const existing = getLicenses();
+
+        /*
+           Keep previously imported records and add the new records.
+           If the same License record is imported again, update that record
+           instead of creating a confusing duplicate.
+        */
+        const keyOf = function(x){
+            return [
+                x.Department,
+                x.Equipment,
+                x.Model,
+                x.Make,
+                x.Serial_No,
+                x.QA_Performed_Date,
+                x.AERB_Done_On
+            ].map(function(v){
+                return String(v == null ? "" : v).trim().toLowerCase();
+            }).join("|");
+        };
+
+        const merged = existing.slice();
+        records.forEach(function(record){
+            const key = keyOf(record);
+            const index = merged.findIndex(function(oldRecord){
+                return key && keyOf(oldRecord) === key;
+            });
+            if(index >= 0){
+                merged[index] = Object.assign({}, merged[index], record);
+            }else{
+                merged.push(record);
+            }
+        });
+
+        const payload = JSON.stringify(merged);
+        localStorage.setItem(LICENSES_KEY, payload);
+
+        /* Force a real read-back from browser storage before reporting success. */
+        const raw = localStorage.getItem(LICENSES_KEY);
+        if(!raw){
+            throw new Error("License data was not written to browser storage.");
+        }
+
+        const saved = JSON.parse(raw);
+        if(!Array.isArray(saved) || saved.length !== merged.length){
+            throw new Error("License data could not be verified after saving.");
+        }
+
         return true;
     }catch(err){
         console.error("License save error:", err);
@@ -6354,13 +6398,25 @@ function saveImportedLicenses(){
         showToast("Please select a License Excel file first.");
         return;
     }
-    const count=importedLicenses.length;
+
+    const count = importedLicenses.length;
     if(!saveLicenses(importedLicenses)) return;
-    importedLicenses=[];
-    document.getElementById("licenseImportInfo").textContent=count+" License records saved successfully. You can select another file.";
+
+    /* Confirm the exact saved data is available to the License tab. */
+    const saved = getLicenses();
+    if(!saved.length){
+        showToast("License records were not found after saving. Please try again.");
+        return;
+    }
+
+    importedLicenses = [];
+    const info = document.getElementById("licenseImportInfo");
+    if(info){
+        info.innerHTML = "<b>" + count + "</b> License record(s) saved successfully. Total License records: <b>" + saved.length + "</b>.";
+    }
     renderLicenseImportPreview();
     renderLicenseTable();
-    showToast(count+" License records saved successfully.");
+    showToast(count + " License record(s) saved. Open the License tab to view them.");
 }
 function clearLicenseImport(){importedLicenses=[];const i=document.getElementById("licenseImportInfo");if(i)i.textContent="No file selected.";const f=document.querySelector('#page-licenseImport input[type="file"]');if(f)f.value="";renderLicenseImportPreview();}
 function downloadLicenseTemplate(){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}const headers=["Department","Equipment","Model","Make","Serial No","QA Performed Date","QA Expiry Date","QA Performed By","AERB Done On","AERB Due On","QA_PDF","AERB_PDF"];const ws=XLSX.utils.aoa_to_sheet([headers,["Radiology","X-Ray","Model-1","Make-1","SN-001","01-01-2026","31-12-2026","Engineer","01-01-2026","31-12-2026","",""]]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"License");XLSX.writeFile(wb,"SmartBio_License_Template.xlsx");}
