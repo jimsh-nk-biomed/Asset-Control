@@ -6263,7 +6263,22 @@ function getLicenses(){
 }
 
 function saveLicenses(data){
-    localStorage.setItem(LICENSES_KEY, JSON.stringify(data || []));
+    try{
+        const records = Array.isArray(data) ? data : [];
+        const existing = getLicenses();
+        const merged = existing.concat(records);
+        localStorage.setItem(LICENSES_KEY, JSON.stringify(merged));
+        // Verify immediately so a failed browser storage write is not reported as success.
+        const saved = getLicenses();
+        if(saved.length < merged.length){
+            throw new Error("License records could not be stored in this browser.");
+        }
+        return true;
+    }catch(err){
+        console.error("License save error:", err);
+        showToast(err.message || "Unable to save License records.");
+        return false;
+    }
 }
 
 function licenseStatus(license){
@@ -6304,11 +6319,49 @@ function normalizeLicenseRow(row){
 }
 function handleLicenseExcelImport(event){
     if(!currentUser||currentUser.role!=="admin"){showToast("Only Administrator can import license records.");return;}
-    const file=event.target.files&&event.target.files[0]; if(!file){clearLicenseImport();return;}
-    const reader=new FileReader(); reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array",cellDates:true});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});importedLicenses=rows.map(normalizeLicenseRow).filter(x=>x.Department||x.Equipment||x.Serial_No||x.QA_PDF||x.AERB_PDF);document.getElementById("licenseImportInfo").innerHTML='File: <b>'+escapeHtml(file.name)+'</b> | Rows found: <b>'+importedLicenses.length+'</b>';renderLicenseImportPreview();}catch(err){importedLicenses=[];document.getElementById("licenseImportInfo").textContent="Unable to read this Excel file.";showToast("License Excel import failed.");}};reader.readAsArrayBuffer(file);
+    const file=event.target.files&&event.target.files[0];
+    if(!file){clearLicenseImport();return;}
+    const reader=new FileReader();
+    reader.onload=function(e){
+        try{
+            const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array",cellDates:true});
+            const sheet=wb.Sheets[wb.SheetNames[0]];
+            const rows=XLSX.utils.sheet_to_json(sheet,{defval:"",raw:true});
+            importedLicenses=rows.map(normalizeLicenseRow).filter(function(x){
+                return Object.values(x).some(function(v){
+                    return v!==null && v!==undefined && String(v).trim()!=="";
+                });
+            });
+            document.getElementById("licenseImportInfo").innerHTML='File: <b>'+escapeHtml(file.name)+'</b> | Rows found: <b>'+importedLicenses.length+'</b>';
+            renderLicenseImportPreview();
+            if(!importedLicenses.length) showToast("No usable License records were found. Please check the column headings.");
+        }catch(err){
+            console.error("License Excel import error:",err);
+            importedLicenses=[];
+            document.getElementById("licenseImportInfo").textContent="Unable to read this Excel file.";
+            showToast("License Excel import failed.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
 }
 function renderLicenseImportPreview(){const h=document.getElementById("licensePreviewHead"),b=document.getElementById("licensePreviewBody");if(!h||!b)return;const cols=["Department","Equipment","Model","Make","Serial_No","QA_Performed_Date","QA_Expiry_Date","QA_Performed_By","AERB_Done_On","AERB_Due_On","QA_PDF","AERB_PDF"];h.innerHTML='<tr>'+cols.map(c=>'<th>'+escapeHtml(c)+'</th>').join('')+'</tr>';b.innerHTML=importedLicenses.slice(0,100).map(x=>'<tr>'+cols.map(c=>'<td>'+escapeHtml(c.indexOf("Date")>=0||c.indexOf("On")>=0||c.indexOf("Due")>=0||c.indexOf("Expiry")>=0?formatDate(x[c]):(x[c]||""))+'</td>').join('')+'</tr>').join('')||'<tr><td colspan="12" class="empty">No rows to preview.</td></tr>';}
-function saveImportedLicenses(){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}if(!importedLicenses.length){showToast("Please select a License Excel file first.");return;}saveLicenses(importedLicenses);showToast(importedLicenses.length+" license records saved successfully.");importedLicenses=[];document.getElementById("licenseImportInfo").textContent="Import saved. You can select another file.";renderLicenseImportPreview();renderLicenseTable();}
+function saveImportedLicenses(){
+    if(!currentUser||currentUser.role!=="admin"){
+        showToast("Administrator access required.");
+        return;
+    }
+    if(!importedLicenses.length){
+        showToast("Please select a License Excel file first.");
+        return;
+    }
+    const count=importedLicenses.length;
+    if(!saveLicenses(importedLicenses)) return;
+    importedLicenses=[];
+    document.getElementById("licenseImportInfo").textContent=count+" License records saved successfully. You can select another file.";
+    renderLicenseImportPreview();
+    renderLicenseTable();
+    showToast(count+" License records saved successfully.");
+}
 function clearLicenseImport(){importedLicenses=[];const i=document.getElementById("licenseImportInfo");if(i)i.textContent="No file selected.";const f=document.querySelector('#page-licenseImport input[type="file"]');if(f)f.value="";renderLicenseImportPreview();}
 function downloadLicenseTemplate(){if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}const headers=["Department","Equipment","Model","Make","Serial No","QA Performed Date","QA Expiry Date","QA Performed By","AERB Done On","AERB Due On","QA_PDF","AERB_PDF"];const ws=XLSX.utils.aoa_to_sheet([headers,["Radiology","X-Ray","Model-1","Make-1","SN-001","01-01-2026","31-12-2026","Engineer","01-01-2026","31-12-2026","",""]]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"License");XLSX.writeFile(wb,"SmartBio_License_Template.xlsx");}
 
