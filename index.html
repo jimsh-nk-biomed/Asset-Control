@@ -3692,6 +3692,12 @@ function renderUsersTable(){
                             `
                             <div style="display:flex;gap:6px;flex-wrap:wrap;">
                                 <button
+                                    class="btn ${u.status === "active" ? "btn-danger" : "btn-green"} btn-small"
+                                    onclick="toggleUserStatus('${escapeHtml(u.id)}')"
+                                >
+                                    ${u.status === "active" ? "⏸ Deactivate" : "▶ Activate"}
+                                </button>
+                                <button
                                     class="btn btn-primary btn-small"
                                     onclick="openEditUserModal('${escapeHtml(u.id)}')"
                                 >
@@ -3826,6 +3832,45 @@ function saveEditedUser(){
     renderUsersTable();
 
     showToast("User rights updated successfully.");
+}
+
+
+function toggleUserStatus(id){
+
+    if(!currentUser || currentUser.role!=="admin"){
+        showToast("Administrator access required.");
+        return;
+    }
+
+    const users = getUsers();
+    const index = users.findIndex(function(u){ return u.id===id; });
+
+    if(index < 0){
+        showToast("User not found.");
+        return;
+    }
+
+    if(currentUser.id === users[index].id){
+        showToast("The current Administrator account cannot be deactivated here.");
+        return;
+    }
+
+    const user = users[index];
+    const willDeactivate = user.status === "active";
+    const newStatus = willDeactivate ? "inactive" : "active";
+    const actionText = willDeactivate ? "deactivate" : "activate";
+
+    if(!confirm('Are you sure you want to '+actionText+' user "'+user.username+'"?')){
+        return;
+    }
+
+    user.status = newStatus;
+    saveUsers(users);
+    renderUsersTable();
+
+    showToast(
+        user.username + (willDeactivate ? " has been deactivated." : " has been activated.")
+    );
 }
 
 
