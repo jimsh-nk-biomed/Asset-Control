@@ -1482,12 +1482,20 @@ tr:hover td{
                             </p>
                         </div>
 
-                        <button
-                            class="btn btn-primary admin-only"
-                            onclick="openPage('import')"
-                        >
-                            📥 Import Excel
-                        </button>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+                            <button
+                                class="btn btn-primary admin-only"
+                                onclick="openPage('import')"
+                            >
+                                📥 Import Excel
+                            </button>
+                            <button
+                                class="btn btn-danger admin-only"
+                                onclick="deleteModuleData('equipment')"
+                            >
+                                🗑️ Delete All Equipment
+                            </button>
+                        </div>
                     </div>
 
                     <div class="card">
@@ -1974,6 +1982,9 @@ tr:hover td{
                             <h1>License Documents</h1>
                             <p>View QA and AERB license/statutory records.</p>
                         </div>
+                        <button class="btn btn-danger admin-only" onclick="deleteModuleData('license')">
+                            🗑️ Delete All License Data
+                        </button>
                     </div>
                     <div class="card">
                         <div class="search-row">
@@ -2009,6 +2020,9 @@ tr:hover td{
                             <h1>AMC / CMC</h1>
                             <p>AMC and CMC contract register and documents.</p>
                         </div>
+                        <button class="btn btn-danger admin-only" onclick="deleteModuleData('amccmc')">
+                            🗑️ Delete All AMC / CMC Data
+                        </button>
                     </div>
                     <div class="card">
                         <div class="search-row">
@@ -2038,6 +2052,83 @@ tr:hover td{
                 <!-- =================================================
                      LICENSE IMPORT - ADMIN ONLY
                 ================================================== -->
+                <!-- =================================================
+                     BREAKDOWN REGISTER
+                ================================================== -->
+                <section id="page-breakdown" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1>Breakdown</h1>
+                            <p>View and search equipment breakdown and service records.</p>
+                        </div>
+                        <button class="btn btn-danger admin-only" onclick="deleteModuleData('breakdown')">
+                            🗑️ Delete All Breakdown Data
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:center;">
+                            <input
+                                type="text"
+                                id="breakdownSearch"
+                                class="search-input"
+                                placeholder="Search Breakdown ID, Asset Number, Department, Equipment, Model, Make, Serial No..."
+                                oninput="renderBreakdownTable()"
+                                style="flex:1;min-width:280px;"
+                            >
+
+                            <select
+                                id="breakdownDepartmentFilter"
+                                class="filter-select"
+                                onchange="renderBreakdownTable()"
+                            >
+                                <option value="all">All Departments</option>
+                            </select>
+
+                            <select
+                                id="breakdownStatusFilter"
+                                class="filter-select"
+                                onchange="renderBreakdownTable()"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="open">Open</option>
+                                <option value="in progress">In Progress</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Breakdown ID</th>
+                                        <th>Complain Date</th>
+                                        <th>Complain Time</th>
+                                        <th>Asset Number</th>
+                                        <th>Department</th>
+                                        <th>Equipment Description</th>
+                                        <th>Model</th>
+                                        <th>Make</th>
+                                        <th>Serial No</th>
+                                        <th>Nature Of Complain</th>
+                                        <th>Action Taken</th>
+                                        <th>Spare Used</th>
+                                        <th>Finish Date</th>
+                                        <th>Finish Time</th>
+                                        <th>Repairing Cost</th>
+                                        <th>Downtime</th>
+                                        <th>Equipment Status</th>
+                                        <th>Service Report</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="breakdownTableBody">
+                                    <tr><td colspan="18" class="empty">No Breakdown records found.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
                 <section id="page-licenseImport" class="page admin-only-page">
                     <div class="page-header">
                         <div>
@@ -2128,6 +2219,7 @@ tr:hover td{
                         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px;">
                             <button class="btn btn-green" onclick="replaceBreakdownsFromImport()">✅ Replace Existing Breakdowns</button>
                             <button class="btn btn-primary" onclick="addBreakdownsFromImport()">➕ Add to Existing Breakdowns</button>
+                            <button class="btn btn-primary" onclick="saveImportedBreakdowns()">💾 Save Imported Breakdowns</button>
                             <button class="btn btn-secondary" onclick="clearBreakdownImport()">🗑️ Clear</button>
                             <button class="btn btn-secondary" onclick="downloadBreakdownTemplate()">📄 Download Excel Template</button>
                         </div>
@@ -6555,7 +6647,7 @@ function renderBreakdownTable(){
     }
 
     tbody.innerHTML=rows.map(function(b){
-        const doc=b.Breakdown_Service_Report_PDF?'<a class="doc-btn doc-install" href="'+escapeAttr(b.Breakdown_Service_Report_PDF)+'" target="_blank" rel="noopener">📄 Report</a>':'<span class="muted">-</span>';
+        const doc=b.Breakdown_Service_Report_PDF?'<a class="doc-btn doc-install" href="'+escapeAttr(b.Breakdown_Service_Report_PDF)+'" target="_blank" rel="noopener">📄 View Report</a>':'<span class="muted">No Report</span>';
         return `<tr><td>${escapeHtml(b.Breakdown_ID||"")}</td><td>${escapeHtml(formatDate(b.Complain_Date)||"")}</td><td>${escapeHtml(b.Complain_Time||"")}</td><td>${escapeHtml(b.Asset_Number||"")}</td><td>${escapeHtml(b.Department||"")}</td><td>${escapeHtml(b.Equipment_Description||"")}</td><td>${escapeHtml(b.Model||"")}</td><td>${escapeHtml(b.Make||"")}</td><td>${escapeHtml(b.Serial_No||"")}</td><td>${escapeHtml(b.Nature_Of_Complain||"")}</td><td>${escapeHtml(b.Action_Taken||"")}</td><td>${escapeHtml(b.Spare_Used||"")}</td><td>${escapeHtml(formatDate(b.Finish_Date)||"")}</td><td>${escapeHtml(b.Finish_Time||"")}</td><td>${escapeHtml(b.Repairing_Cost||"")}</td><td>${escapeHtml(b.Downtime||"")}</td><td><span class="badge ${breakdownStatusClass(b.Equipment_Status)}">${escapeHtml(b.Equipment_Status||"")}</span></td><td>${doc}</td></tr>`;
     }).join("");
 }
@@ -6580,7 +6672,7 @@ function replaceBreakdownsFromImport(){
     if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}
     if(!importedBreakdowns.length){showToast("Please select an Excel file first.");return;}
     if(!confirm("This will replace all existing Breakdown records. Continue?")) return;
-    if(saveBreakdowns(importedBreakdowns)){const count=importedBreakdowns.length;clearBreakdownImport();renderBreakdownTable();showToast(count+" Breakdown records imported and saved successfully.");}
+    if(saveBreakdowns(importedBreakdowns)){const count=importedBreakdowns.length;clearBreakdownImport();renderBreakdownTable();refreshAll();renderBreakdownTable();showToast(count+" Breakdown records imported and saved successfully. Open Breakdown to view the data.");}
 }
 
 function addBreakdownsFromImport(){
@@ -6589,7 +6681,7 @@ function addBreakdownsFromImport(){
     const existing=getBreakdowns(),map=new Map();
     existing.forEach(function(x){const key=String(x.Breakdown_ID||[x.Asset_Number,x.Complain_Date,x.Complain_Time,x.Department].join("|")).toLowerCase();map.set(key,x);});
     importedBreakdowns.forEach(function(x){const key=String(x.Breakdown_ID||[x.Asset_Number,x.Complain_Date,x.Complain_Time,x.Department].join("|")).toLowerCase();map.set(key,x);});
-    if(saveBreakdowns(Array.from(map.values()))){const count=importedBreakdowns.length;clearBreakdownImport();renderBreakdownTable();showToast(count+" imported Breakdown records processed.");}
+    if(saveBreakdowns(Array.from(map.values()))){const count=importedBreakdowns.length;clearBreakdownImport();renderBreakdownTable();refreshAll();renderBreakdownTable();showToast(count+" imported Breakdown records processed. Open Breakdown to view the data.");}
 }
 
 function clearBreakdownImport(){
@@ -6600,16 +6692,35 @@ function clearBreakdownImport(){
 }
 function saveBreakdowns(data){
     try{
-        const clean=(data||[]).map(function(x){
+        if(!Array.isArray(data) || !data.length){
+            throw new Error("No Breakdown records were supplied.");
+        }
+
+        const clean=data.map(function(x){
             const row=Object.assign({},x);
+
             ["Complain_Date","Finish_Date"].forEach(function(k){
-                if(row[k] instanceof Date) row[k]=row[k].toISOString();
+                if(row[k] instanceof Date){
+                    row[k]=row[k].toISOString();
+                }
             });
+
             return row;
         });
-        localStorage.setItem(BREAKDOWN_KEY,JSON.stringify(clean));
-        const saved=JSON.parse(localStorage.getItem(BREAKDOWN_KEY)||"[]");
-        if(saved.length!==clean.length) throw new Error("Saved record count does not match imported record count.");
+
+        const json=JSON.stringify(clean);
+        localStorage.setItem(BREAKDOWN_KEY,json);
+
+        const storedRaw=localStorage.getItem(BREAKDOWN_KEY);
+        if(!storedRaw){
+            throw new Error("Browser storage did not return the saved Breakdown data.");
+        }
+
+        const stored=JSON.parse(storedRaw);
+        if(!Array.isArray(stored) || stored.length!==clean.length){
+            throw new Error("Saved record count does not match the imported record count.");
+        }
+
         return true;
     }catch(error){
         console.error("Breakdown save failed:",error);
@@ -6620,8 +6731,15 @@ function saveBreakdowns(data){
 
 function saveImportedBreakdowns(){
     if(!currentUser||currentUser.role!=="admin"){showToast("Administrator access required.");return;}
-    if(!importedBreakdowns.length){showToast("Please select an Excel file first.");return;}
-    if(saveBreakdowns(importedBreakdowns)){showToast(importedBreakdowns.length+" Breakdown records saved successfully.");clearBreakdownImport();renderBreakdownTable();}
+    if(!importedBreakdowns.length){showToast("Please select a Breakdown Excel file first.");return;}
+
+    const count=importedBreakdowns.length;
+
+    if(saveBreakdowns(importedBreakdowns)){
+        clearBreakdownImport();
+        renderBreakdownTable();
+        showToast(count+" Breakdown records saved successfully. Open the Breakdown tab to view them.");
+    }
 }
 
 function renderReports(){
@@ -6827,6 +6945,108 @@ function loadSettingsForm(){
         .value =
         settings.logoUrl || "";
 
+}
+
+
+/* =========================================================
+   ADMIN DATA DELETE
+========================================================= */
+
+function deleteModuleData(moduleName){
+    if(!currentUser || currentUser.role!=="admin"){
+        showToast("Administrator access required.");
+        return;
+    }
+
+    const config = {
+        equipment:{
+            key:EQUIPMENT_KEY,
+            label:"Equipment"
+        },
+        license:{
+            key:LICENSES_KEY,
+            label:"License"
+        },
+        amccmc:{
+            key:AMCCMC_KEY,
+            label:"AMC / CMC"
+        },
+        breakdown:{
+            key:BREAKDOWN_KEY,
+            label:"Breakdown"
+        }
+    }[moduleName];
+
+    if(!config){
+        showToast("Invalid data section.");
+        return;
+    }
+
+    let existing=[];
+    try{
+        existing=JSON.parse(localStorage.getItem(config.key)||"[]");
+        if(!Array.isArray(existing)) existing=[];
+    }catch(e){
+        existing=[];
+    }
+
+    if(!existing.length){
+        showToast("There is no "+config.label+" data to delete.");
+        return;
+    }
+
+    const firstConfirm=confirm(
+        "DELETE ALL "+config.label.toUpperCase()+" DATA?\\n\\n"+
+        "This will permanently remove "+existing.length+" record(s) from this browser.\\n\\n"+
+        "This action cannot be undone."
+    );
+
+    if(!firstConfirm) return;
+
+    const secondConfirm=confirm(
+        "FINAL CONFIRMATION\\n\\n"+
+        "Delete all "+config.label+" records now?"
+    );
+
+    if(!secondConfirm) return;
+
+    try{
+        localStorage.removeItem(config.key);
+
+        /* Clear any active import preview for the same module. */
+        if(moduleName==="breakdown"){
+            importedBreakdowns=[];
+            clearBreakdownImport();
+        }
+        if(moduleName==="license"){
+            importedLicenses=[];
+            if(typeof clearLicenseImport==="function") clearLicenseImport();
+        }
+        if(moduleName==="amccmc"){
+            importedAmcCmc=[];
+            if(typeof clearAmcCmcImport==="function") clearAmcCmcImport();
+        }
+        if(moduleName==="equipment"){
+            importedEquipment=[];
+            const file=document.getElementById("excelFile");
+            if(file) file.value="";
+            const info=document.getElementById("importInfo");
+            if(info) info.textContent="No file selected.";
+            if(typeof renderImportPreview==="function") renderImportPreview();
+        }
+
+        refreshAll();
+
+        if(moduleName==="equipment") renderEquipmentTable();
+        if(moduleName==="license") renderLicenseTable();
+        if(moduleName==="amccmc") renderAmcCmcTable();
+        if(moduleName==="breakdown") renderBreakdownTable();
+
+        showToast("All "+config.label+" data has been deleted.");
+    }catch(error){
+        console.error("Delete "+config.label+" failed:",error);
+        showToast("Unable to delete "+config.label+" data.");
+    }
 }
 
 
