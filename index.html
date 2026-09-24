@@ -1485,6 +1485,12 @@ tr:hover td{
                         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
                             <button
                                 class="btn btn-primary admin-only"
+                                onclick="openEquipmentEditor()"
+                            >
+                                ➕ Add Equipment
+                            </button>
+                            <button
+                                class="btn btn-secondary admin-only"
                                 onclick="openPage('import')"
                             >
                                 📥 Import Excel
@@ -2716,6 +2722,93 @@ tr:hover td{
 
 
 <!-- =========================================================
+     EQUIPMENT EDIT / ADD / DOCUMENT UPLOAD MODAL
+========================================================= -->
+<div id="equipmentEditorModal" class="modal-overlay">
+    <div class="modal" style="max-width:760px;">
+        <div class="modal-header">
+            <div>
+                <h2 id="equipmentEditorTitle">Add Equipment</h2>
+                <div class="muted" id="equipmentEditorSubtitle">Administrator only for adding equipment</div>
+            </div>
+            <button class="close-btn" onclick="closeEquipmentEditor()">✕</button>
+        </div>
+
+        <form id="equipmentEditorForm" onsubmit="saveEquipmentEditor(event)">
+            <input type="hidden" id="editEquipmentOriginalAsset">
+
+            <div class="detail-grid">
+                <div>
+                    <label>Asset No *</label>
+                    <input id="editAssetNo" required>
+                </div>
+                <div>
+                    <label>Department *</label>
+                    <input id="editDepartment" required>
+                </div>
+                <div>
+                    <label>Equipment *</label>
+                    <input id="editEquipment" required>
+                </div>
+                <div>
+                    <label>Model</label>
+                    <input id="editModel">
+                </div>
+                <div>
+                    <label>Make</label>
+                    <input id="editMake">
+                </div>
+                <div>
+                    <label>Serial No</label>
+                    <input id="editSerialNo">
+                </div>
+                <div>
+                    <label>Installation Date</label>
+                    <input type="date" id="editInstallationDate">
+                </div>
+            </div>
+
+            <div id="equipmentPmsEditor" class="card" style="margin-top:18px;display:none;box-shadow:none;background:#f0fdf4;border:1px solid #bbf7d0;">
+                <h3 style="color:#15803d;margin-bottom:6px;">PMS</h3>
+                <div class="muted" style="margin-bottom:12px;">✏️ Edit the service Done On / Due On dates and upload the latest PMS service report.</div>
+                <div class="detail-grid">
+                    <div><label>PMS Done On</label><input type="date" id="editPmsDone"></div>
+                    <div><label>PMS Due On</label><input type="date" id="editPmsDue"></div>
+                </div>
+                <label style="display:block;margin-top:12px;">PMS Report / Certificate (PDF)</label>
+                <input type="file" id="editPmsFile" accept="application/pdf,.pdf">
+                <div class="muted" id="editPmsCurrent" style="margin-top:6px;"></div>
+            </div>
+
+            <div id="equipmentCalEditor" class="card" style="margin-top:18px;display:none;box-shadow:none;background:#fffaf0;border:1px solid #fde68a;">
+                <h3 style="color:#d97706;margin-bottom:6px;">Calibration</h3>
+                <div class="muted" style="margin-bottom:12px;">✏️ Edit the calibration Done On / Due On dates and upload the latest calibration report/certificate.</div>
+                <div class="detail-grid">
+                    <div><label>Calibration Done On</label><input type="date" id="editCalDone"></div>
+                    <div><label>Calibration Due On</label><input type="date" id="editCalDue"></div>
+                </div>
+                <label style="display:block;margin-top:12px;">Calibration Report / Certificate (PDF)</label>
+                <input type="file" id="editCalFile" accept="application/pdf,.pdf">
+                <div class="muted" id="editCalCurrent" style="margin-top:6px;"></div>
+            </div>
+
+            <div id="equipmentInstallationEditor" class="card" style="margin-top:18px;display:none;box-shadow:none;background:#eff6ff;border:1px solid #bfdbfe;">
+                <h3 style="color:#0d47a1;margin-bottom:12px;">Installation Document</h3>
+                <label>Installation Report / Document (PDF)</label>
+                <input type="file" id="editInstallationFile" accept="application/pdf,.pdf">
+                <div class="muted" id="editInstallationCurrent" style="margin-top:6px;"></div>
+            </div>
+
+            <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+                <button class="btn btn-secondary" type="button" onclick="closeEquipmentEditor()">Cancel</button>
+                <button class="btn btn-primary" type="submit">💾 Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- =========================================================
      LOGIN SUCCESS MODAL
 ========================================================= -->
 <div
@@ -3225,13 +3318,62 @@ function hasModuleAccess(moduleName){
 }
 
 
+function getPmsDocument(equipment){
+    if(!equipment) return "";
+
+    /* One PMS document resolver for Equipment, PMS and Documents. */
+    const candidates = [
+        equipment.PMS_PDF,
+        equipment.PMS_Service_Report_PDF,
+        equipment.PMS_Service_Report,
+        equipment.PMS_Service_Report_URL,
+        equipment.PMS_Report_PDF,
+        equipment.PMS_Report,
+        equipment.PMS_Document,
+        equipment.PMS_Attachment,
+        equipment.PMS_Attachment_PDF,
+        equipment.PMS_Certificate,
+        equipment.PMS_Certificate_PDF,
+        equipment.PMS_PDF_URL
+    ];
+
+    for(let i=0;i<candidates.length;i++){
+        const raw = candidates[i];
+        if(raw && typeof raw === "object"){
+            const values = [raw.url, raw.href, raw.link, raw.value, raw.text];
+            for(let j=0;j<values.length;j++){
+                const v = String(values[j] || "").trim();
+                if(v) return v;
+            }
+        }else{
+            const v = String(raw || "").trim();
+            if(v) return v;
+        }
+    }
+    return "";
+}
+
+function normalizePmsDocumentRecord(equipment){
+    if(!equipment || typeof equipment !== "object") return equipment;
+
+    const pms = getPmsDocument(equipment);
+
+    /* Migrate older records in memory so every screen sees the same field. */
+    if(pms){
+        equipment.PMS_PDF = pms;
+        equipment.PMS_Service_Report_PDF = pms;
+    }
+
+    return equipment;
+}
+
 function hasAccessibleDocument(equipment){
 
     if(!equipment) return false;
 
     return (
         (hasModuleAccess("installation") && equipment.Installation_PDF) ||
-        (hasModuleAccess("pms") && equipment.PMS_PDF) ||
+        (hasModuleAccess("pms") && getPmsDocument(equipment)) ||
         (hasModuleAccess("calibration") && equipment.Calibration_PDF) ||
         (hasModuleAccess("iq") && equipment.IQ_PDF) ||
         (hasModuleAccess("oq") && equipment.OQ_PDF) ||
@@ -4072,9 +4214,28 @@ function getEquipment(){
 
     try{
 
-        return JSON.parse(
+        const data = JSON.parse(
             localStorage.getItem(EQUIPMENT_KEY)
         ) || [];
+
+        if(!Array.isArray(data)) return [];
+
+        let changed = false;
+
+        const normalized = data.map(function(e){
+            const before = getPmsDocument(e);
+            const record = normalizePmsDocumentRecord(Object.assign({}, e));
+            const after = String(record.PMS_PDF || "").trim();
+            if(before && (after !== before || String(e.PMS_Service_Report_PDF || "").trim() !== before)) changed = true;
+            return record;
+        });
+
+        /* Persist the migration once so old equipment records are repaired. */
+        if(changed){
+            localStorage.setItem(EQUIPMENT_KEY, JSON.stringify(normalized));
+        }
+
+        return normalized;
 
     }catch(e){
 
@@ -4085,6 +4246,7 @@ function getEquipment(){
 
 function saveEquipment(data){
 
+    /* Save the actual equipment JSON. */
     localStorage.setItem(
         EQUIPMENT_KEY,
         JSON.stringify(data)
@@ -4483,6 +4645,202 @@ function getStatusBadge(value){
 
 
 /* =========================================================
+   MANUAL EQUIPMENT + SCANNED UPDATE / DOCUMENT UPLOAD
+========================================================= */
+
+function isAdministrator(){
+    return !!currentUser && currentUser.role === "admin";
+}
+
+function dateInputValue(value){
+    if(!value) return "";
+    const d = parseDate(value);
+    if(!d) return "";
+    return d.getFullYear() + "-" +
+        String(d.getMonth()+1).padStart(2,"0") + "-" +
+        String(d.getDate()).padStart(2,"0");
+}
+
+function openEquipmentEditor(assetNo){
+    const modal = document.getElementById("equipmentEditorModal");
+    if(!modal) return;
+
+    const isEdit = !!assetNo;
+    const existing = isEdit ? getEquipment().find(e =>
+        String(e.Asset_No || "").toLowerCase() === String(assetNo).toLowerCase()
+    ) : null;
+
+    if(isEdit && !existing){
+        showToast("Equipment not found.");
+        return;
+    }
+
+    if(!isEdit && !isAdministrator()){
+        showToast("Only Administrator can add equipment.");
+        return;
+    }
+
+    document.getElementById("equipmentEditorTitle").textContent =
+        isEdit ? "Update Equipment" : "Add Equipment";
+    document.getElementById("equipmentEditorSubtitle").textContent =
+        isEdit
+        ? "Update dates and upload documents for this equipment"
+        : "Administrator only — create a new equipment record";
+
+    document.getElementById("editEquipmentOriginalAsset").value = existing ? existing.Asset_No : "";
+    document.getElementById("editAssetNo").value = existing?.Asset_No || "";
+    document.getElementById("editDepartment").value = existing?.Department || "";
+    document.getElementById("editEquipment").value = existing?.Equipment || "";
+    document.getElementById("editModel").value = existing?.Model || "";
+    document.getElementById("editMake").value = existing?.Make || "";
+    document.getElementById("editSerialNo").value = existing?.Serial_No || "";
+    document.getElementById("editInstallationDate").value = dateInputValue(existing?.Installation_Date);
+
+    /* Normal users may update only the modules they are authorized for.
+       Equipment master fields remain read-only for them. */
+    ["editAssetNo","editDepartment","editEquipment","editModel","editMake","editSerialNo","editInstallationDate"]
+        .forEach(function(id){
+            const el = document.getElementById(id);
+            if(el) el.disabled = !isAdministrator();
+        });
+
+    document.getElementById("editPmsDone").value = dateInputValue(existing?.PMS_Done_On);
+    document.getElementById("editPmsDue").value = dateInputValue(existing?.PMS_Due_On);
+    document.getElementById("editCalDone").value = dateInputValue(existing?.Calibration_Done_On);
+    document.getElementById("editCalDue").value = dateInputValue(existing?.Calibration_Due_On);
+
+    document.getElementById("editPmsFile").value = "";
+    document.getElementById("editCalFile").value = "";
+    document.getElementById("editInstallationFile").value = "";
+
+    document.getElementById("editPmsCurrent").textContent = getPmsDocument(existing) ? "✓ Existing PMS document available. Select a new PDF to replace it." : "No PMS document uploaded.";
+    document.getElementById("editCalCurrent").textContent = existing?.Calibration_PDF ? "✓ Existing Calibration document available. Select a new PDF to replace it." : "No Calibration document uploaded.";
+    document.getElementById("editInstallationCurrent").textContent = existing?.Installation_PDF ? "✓ Existing Installation document available. Select a new PDF to replace it." : "No Installation document uploaded.";
+
+    document.getElementById("equipmentPmsEditor").style.display = hasModuleAccess("pms") ? "block" : "none";
+    document.getElementById("equipmentCalEditor").style.display = hasModuleAccess("calibration") ? "block" : "none";
+    document.getElementById("equipmentInstallationEditor").style.display = hasModuleAccess("installation") ? "block" : "none";
+
+    modal.style.display = "flex";
+}
+
+function closeEquipmentEditor(){
+    const modal = document.getElementById("equipmentEditorModal");
+    if(modal) modal.style.display = "none";
+}
+
+function readPdfAsDataUrl(file){
+    return new Promise(function(resolve,reject){
+        if(!file){ resolve(""); return; }
+        if(file.type !== "application/pdf" && !/\.pdf$/i.test(file.name || "")){
+            reject(new Error("Please select a PDF file."));
+            return;
+        }
+        /* Browser localStorage is limited. Keep individual PDFs reasonably small. */
+        if(file.size > 2 * 1024 * 1024){
+            reject(new Error("PDF is larger than 2 MB. Please use a smaller PDF."));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(){ resolve(String(reader.result || "")); };
+        reader.onerror = function(){ reject(new Error("Unable to read the PDF.")); };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function saveEquipmentEditor(event){
+    event.preventDefault();
+
+    const originalAsset = document.getElementById("editEquipmentOriginalAsset").value.trim();
+    const assetNo = document.getElementById("editAssetNo").value.trim();
+    const department = document.getElementById("editDepartment").value.trim();
+    const equipmentName = document.getElementById("editEquipment").value.trim();
+
+    if(!assetNo || !department || !equipmentName){
+        showToast("Asset No, Department and Equipment are required.");
+        return;
+    }
+
+    const data = getEquipment();
+    const index = originalAsset
+        ? data.findIndex(e => String(e.Asset_No || "").toLowerCase() === originalAsset.toLowerCase())
+        : -1;
+
+    if(index < 0 && !isAdministrator()){
+        showToast("Only Administrator can add equipment.");
+        return;
+    }
+
+    const duplicate = data.findIndex((e,i) =>
+        i !== index && String(e.Asset_No || "").toLowerCase() === assetNo.toLowerCase()
+    );
+    if(duplicate >= 0){
+        showToast("This Asset No already exists.");
+        return;
+    }
+
+    const old = index >= 0 ? data[index] : {};
+    const record = Object.assign({}, old, {
+        Asset_No: isAdministrator() ? assetNo : old.Asset_No,
+        Department: isAdministrator() ? department : old.Department,
+        Equipment: isAdministrator() ? equipmentName : old.Equipment,
+        Model: isAdministrator() ? document.getElementById("editModel").value.trim() : old.Model,
+        Make: isAdministrator() ? document.getElementById("editMake").value.trim() : old.Make,
+        Serial_No: isAdministrator() ? document.getElementById("editSerialNo").value.trim() : old.Serial_No,
+        Installation_Date: isAdministrator() ? document.getElementById("editInstallationDate").value : old.Installation_Date,
+        PMS_Done_On: document.getElementById("editPmsDone").value,
+        PMS_Due_On: document.getElementById("editPmsDue").value,
+        Calibration_Done_On: document.getElementById("editCalDone").value,
+        Calibration_Due_On: document.getElementById("editCalDue").value
+    });
+
+    try{
+        if(hasModuleAccess("installation")){
+            const f = document.getElementById("editInstallationFile").files[0];
+            if(f) record.Installation_PDF = await readPdfAsDataUrl(f);
+        }
+        if(hasModuleAccess("pms")){
+            const f = document.getElementById("editPmsFile").files[0];
+            if(f){ record.PMS_PDF = await readPdfAsDataUrl(f); record.PMS_Service_Report_PDF = record.PMS_PDF; }
+        }
+        if(hasModuleAccess("calibration")){
+            const f = document.getElementById("editCalFile").files[0];
+            if(f) record.Calibration_PDF = await readPdfAsDataUrl(f);
+        }
+    }catch(err){
+        showToast(err.message || "Unable to upload document.");
+        return;
+    }
+
+    try{
+        if(index >= 0) data[index] = record;
+        else data.push(record);
+        saveEquipment(data);
+    }catch(err){
+        showToast("Unable to save. Browser storage may be full because of PDF files.");
+        return;
+    }
+
+    closeEquipmentEditor();
+    renderEquipmentTable();
+    renderPmsTable();
+    renderCalibrationTable();
+    refreshAll();
+
+    if(window.lastScannedAssetNo && String(window.lastScannedAssetNo).toLowerCase() === assetNo.toLowerCase()){
+        const latest = getEquipment().find(e => String(e.Asset_No).toLowerCase() === assetNo.toLowerCase());
+        if(latest) showScannedResult(latest);
+    }
+
+    showToast(index >= 0 ? "Equipment updated successfully." : "Equipment added successfully.");
+}
+
+function uploadScannedEquipment(assetNo){
+    openEquipmentEditor(assetNo);
+}
+
+
+/* =========================================================
    EQUIPMENT DETAILS
 ========================================================= */
 
@@ -4682,7 +5040,7 @@ function showEquipment(assetNo){
                 )}
 
                 ${documentButtonForModule(
-                    equipment.PMS_PDF,
+                    getPmsDocument(equipment),
                     "PMS",
                     "doc-pms",
                     "pms"
@@ -4919,12 +5277,26 @@ function renderPmsTable(){
                     <td>${getStatusBadge(e.PMS_Due_On)}</td>
 
                     <td>
-                        <button
-                            class="btn btn-primary btn-small"
-                            onclick="showEquipment('${jsEscape(e.Asset_No)}')"
-                        >
-                            View
-                        </button>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                            ${documentButtonForModule(
+                                getPmsDocument(e),
+                                "PMS PDF",
+                                "doc-pms",
+                                "pms"
+                            ) || '<span style="color:#64748b;font-size:12px">No PMS PDF</span>'}
+                            <button
+                                class="btn btn-primary btn-small"
+                                onclick="showEquipment('${jsEscape(e.Asset_No)}')"
+                            >
+                                View
+                            </button>
+                            <button
+                                class="btn btn-green btn-small"
+                                onclick="openEquipmentEditor('${jsEscape(e.Asset_No)}')"
+                            >
+                                ✏️ Edit / Upload
+                            </button>
+                        </div>
                     </td>
 
                 </tr>
@@ -5041,12 +5413,20 @@ function renderCalibrationTable(){
                     </td>
 
                     <td>
-                        <button
-                            class="btn btn-primary btn-small"
-                            onclick="showEquipment('${jsEscape(e.Asset_No)}')"
-                        >
-                            View
-                        </button>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <button
+                                class="btn btn-primary btn-small"
+                                onclick="showEquipment('${jsEscape(e.Asset_No)}')"
+                            >
+                                View
+                            </button>
+                            <button
+                                class="btn btn-green btn-small"
+                                onclick="openEquipmentEditor('${jsEscape(e.Asset_No)}')"
+                            >
+                                ✏️ Edit / Upload
+                            </button>
+                        </div>
                     </td>
 
                 </tr>
@@ -5188,7 +5568,7 @@ function renderDocumentsTable(){
                             )}
 
                             ${documentButtonForModule(
-                                e.PMS_PDF,
+                                getPmsDocument(e),
                                 "PMS",
                                 "doc-pms",
                                 "pms"
@@ -5382,6 +5762,8 @@ function handleQrResult(text){
 
 function showScannedResult(e){
 
+    window.lastScannedAssetNo = e.Asset_No || "";
+
     let html = "";
 
     const pmsStatus = hasModuleAccess("pms")
@@ -5483,6 +5865,35 @@ function showScannedResult(e){
 
     html += `
         <div class="card">
+            <h2 style="margin-bottom:10px">
+                Update / Upload
+            </h2>
+            <p class="muted" style="margin-bottom:12px;line-height:1.6">
+                After scanning the QR code, authorized users can change PMS / Calibration dates and upload the corresponding PDF report. Administrator can also update the equipment master details.
+            </p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                ${isAdministrator() ? `
+                <button class="btn btn-primary" onclick="openEquipmentEditor('${jsEscape(e.Asset_No)}')">
+                    ✏️ Edit Equipment
+                </button>` : ""}
+                ${hasModuleAccess("installation") ? `
+                <button class="btn btn-secondary" onclick="openEquipmentEditor('${jsEscape(e.Asset_No)}')">
+                    📄 Installation Document
+                </button>` : ""}
+                ${hasModuleAccess("pms") ? `
+                <button class="btn btn-secondary" onclick="openEquipmentEditor('${jsEscape(e.Asset_No)}')">
+                    🛠️ Update PMS / Upload Report
+                </button>` : ""}
+                ${hasModuleAccess("calibration") ? `
+                <button class="btn btn-secondary" onclick="openEquipmentEditor('${jsEscape(e.Asset_No)}')">
+                    📏 Update Calibration / Upload Report
+                </button>` : ""}
+            </div>
+        </div>
+    `;
+
+    html += `
+        <div class="card">
 
             <h2 style="margin-bottom:10px">
                 Documents
@@ -5498,7 +5909,7 @@ function showScannedResult(e){
                 )}
 
                 ${documentButtonForModule(
-                    e.PMS_PDF,
+                    getPmsDocument(e),
                     "PMS",
                     "doc-pms",
                     "pms"
@@ -5641,21 +6052,43 @@ const HEADER_ALIASES = {
         "installation_pdf",
         "installation_document",
         "installation_doc",
-        "installation_link"
+        "installation_link",
+        "installation",
+        "installation_report",
+        "installation_report_pdf",
+        "installation_url"
     ],
 
     PMS_PDF:[
         "pms_pdf",
         "pms_document",
         "pms_doc",
-        "pms_link"
+        "pms_link",
+        "pms_service_report_pdf",
+        "pms_service_report",
+        "pms_service_report_url",
+        "pms_report_pdf",
+        "pms_report",
+        "pms_attachment",
+        "pms_attachment_pdf",
+        "pms_certificate",
+        "pms_certificate_pdf",
+        "pms_service_report_document",
+        "pms_service_report_doc",
+        "pms_document_pdf",
+        "pms_attachment_url",
+        "pms_pdf_url"
     ],
 
     Calibration_PDF:[
         "calibration_pdf",
         "calibration_document",
         "calibration_doc",
-        "calibration_link"
+        "calibration_link",
+        "calibration",
+        "calibration_report",
+        "calibration_report_pdf",
+        "calibration_url"
     ],
 
     IQ_PDF:[
@@ -5712,7 +6145,11 @@ function getMappedValue(row,field){
             )
         ){
 
-            return normalizedRow[alias];
+            const value = normalizedRow[alias];
+            if(value && typeof value === "object"){
+                return value.url || value.href || value.link || value.value || value.text || "";
+            }
+            return value;
 
         }
 
@@ -5779,7 +6216,22 @@ function normalizeImportedRow(row){
 
         PMS_PDF:
             String(
-                getMappedValue(row,"PMS_PDF") || ""
+                getMappedValue(row,"PMS_PDF") ||
+                getMappedValue(row,"PMS_Service_Report_PDF") ||
+                getMappedValue(row,"PMS_Service_Report") ||
+                getMappedValue(row,"PMS_Report_PDF") ||
+                getMappedValue(row,"PMS_Report") ||
+                ""
+            ).trim(),
+
+        PMS_Service_Report_PDF:
+            String(
+                getMappedValue(row,"PMS_Service_Report_PDF") ||
+                getMappedValue(row,"PMS_Service_Report") ||
+                getMappedValue(row,"PMS_PDF") ||
+                getMappedValue(row,"PMS_Report_PDF") ||
+                getMappedValue(row,"PMS_Report") ||
+                ""
             ).trim(),
 
         Calibration_PDF:
@@ -5814,98 +6266,122 @@ function handleExcelImport(event){
         return;
     }
 
-    const file =
-        event.target.files[0];
+    const file = event.target.files[0];
 
     if(!file){
-
         importedEquipment = [];
-
-        document.getElementById("importInfo")
-            .textContent =
-            "No file selected.";
-
+        document.getElementById("importInfo").textContent = "No file selected.";
         return;
     }
 
-    const reader =
-        new FileReader();
+    const reader = new FileReader();
 
-    reader.onload =
-        function(e){
+    reader.onload = function(e){
 
-            try{
+        try{
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {
+                type:"array",
+                cellDates:true,
+                cellStyles:true
+            });
 
-                const data =
-                    new Uint8Array(
-                        e.target.result
-                    );
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const range = XLSX.utils.decode_range(firstSheet['!ref'] || "A1:A1");
 
-                const workbook =
-                    XLSX.read(
-                        data,
-                        {
-                            type:"array",
-                            cellDates:true
+            /*
+               IMPORTANT:
+               Excel hyperlinks are stored in the cell hyperlink object (cell.l),
+               not necessarily in the value returned by sheet_to_json().
+               Therefore we read the sheet row-by-row and explicitly recover
+               hyperlinks for Installation / PMS / Calibration document columns.
+            */
+            const matrix = XLSX.utils.sheet_to_json(firstSheet, {
+                header:1,
+                defval:"",
+                raw:true
+            });
+
+            const headers = matrix.length ? matrix[0].map(function(h){ return String(h || "").trim(); }) : [];
+            const rawRows = [];
+
+            for(let r=1; r<matrix.length; r++){
+                const values = matrix[r] || [];
+                const row = {};
+
+                headers.forEach(function(header, c){
+                    if(!header) return;
+
+                    const address = XLSX.utils.encode_cell({r:r, c:c});
+                    const cell = firstSheet[address];
+                    let value = values[c] === undefined ? "" : values[c];
+
+                    /* Recover the actual URL when the Excel cell contains a hyperlink. */
+                    if(cell && cell.l && cell.l.Target){
+                        const target = String(cell.l.Target || "").trim();
+                        const nh = normalizeHeader(header);
+                        const isDocumentColumn =
+                            nh.indexOf("installation") !== -1 ||
+                            nh.indexOf("pms") !== -1 ||
+                            nh.indexOf("calibration") !== -1 ||
+                            nh.indexOf("service_report") !== -1;
+
+                        if(isDocumentColumn && target){
+                            value = target;
                         }
-                    );
+                    }
 
-                const firstSheet =
-                    workbook.Sheets[
-                        workbook.SheetNames[0]
-                    ];
+                    row[header] = value;
+                });
 
-                const rows =
-                    XLSX.utils.sheet_to_json(
-                        firstSheet,
-                        {
-                            defval:""
-                        }
-                    );
-
-                importedEquipment =
-                    rows
-                    .map(normalizeImportedRow)
-                    .filter(function(r){
-
-                        return r.Asset_No;
-
-                    });
-
-                document.getElementById("importInfo")
-                    .innerHTML =
-                    `
-                    File:
-                    <b>${escapeHtml(file.name)}</b>
-                    |
-                    Rows found:
-                    <b>${importedEquipment.length}</b>
-                    `;
-
-                renderImportPreview();
-
-            }catch(error){
-
-                console.error(error);
-
-                importedEquipment = [];
-
-                document.getElementById("importInfo")
-                    .textContent =
-                    "Unable to read this Excel file.";
-
-                showToast(
-                    "Excel import failed."
-                );
-
+                rawRows.push(row);
             }
 
-        };
+            importedEquipment = rawRows
+                .map(function(row){
+                    const record = normalizeImportedRow(row);
+
+                    /* Final safety pass: if the PMS column was imported under
+                       a document label, keep it in the standard PMS_PDF field. */
+                    if(!record.PMS_PDF){
+                        const keys = Object.keys(row);
+                        for(let i=0;i<keys.length;i++){
+                            const key = normalizeHeader(keys[i]);
+                            if(
+                                key === "pms" ||
+                                key.indexOf("pms_") === 0 ||
+                                key.indexOf("pms") !== -1 ||
+                                key.indexOf("service_report") !== -1
+                            ){
+                                const value = String(row[keys[i]] || "").trim();
+                                if(value){
+                                    record.PMS_PDF = value;
+                                    record.PMS_Service_Report_PDF = value;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    return record;
+                })
+                .filter(function(r){ return r.Asset_No; });
+
+            document.getElementById("importInfo").innerHTML =
+                `File: <b>${escapeHtml(file.name)}</b> | Rows found: <b>${importedEquipment.length}</b>`;
+
+            renderImportPreview();
+
+        }catch(error){
+            console.error(error);
+            importedEquipment = [];
+            document.getElementById("importInfo").textContent = "Unable to read this Excel file.";
+            showToast("Excel import failed.");
+        }
+    };
 
     reader.readAsArrayBuffer(file);
-
 }
-
 
 function renderImportPreview(){
 
@@ -6218,7 +6694,7 @@ function exportEquipmentExcel(){
         if(access.pms){
             row.PMS_Done_On = formatDate(e.PMS_Done_On);
             row.PMS_Due_On  = formatDate(e.PMS_Due_On);
-            row.PMS_PDF     = e.PMS_PDF || "";
+            row.PMS_PDF     = getPmsDocument(e);
         }
 
         if(access.calibration){
@@ -6305,11 +6781,11 @@ function exportDocumentsExcel(){
             }));
         }
 
-        if(access.pms && e.PMS_PDF){
+        if(access.pms && getPmsDocument(e)){
             exportData.push(Object.assign({}, base, {
                 Document_Type: "PMS",
                 Document_Date: formatDate(e.PMS_Done_On),
-                Document_PDF: e.PMS_PDF
+                Document_PDF: getPmsDocument(e)
             }));
         }
 
@@ -6920,7 +7396,7 @@ function refreshDashboard(){
 
             return (
                 e.Installation_PDF ||
-                e.PMS_PDF ||
+                getPmsDocument(e) ||
                 e.Calibration_PDF ||
                 e.IQ_PDF ||
                 e.OQ_PDF ||
@@ -7157,6 +7633,15 @@ function safeUrl(url){
             String(url || "").trim();
 
         if(!trimmed) return "";
+
+        /*
+           Uploaded PMS / Calibration / Installation PDFs are stored
+           locally as data: URLs in this browser version. Allow only
+           PDF data URLs in addition to normal http/https links.
+        */
+        if(/^data:application\/pdf(?:;[^,]*)?,/i.test(trimmed)){
+            return escapeHtml(trimmed);
+        }
 
         const parsed =
             new URL(
