@@ -2884,8 +2884,8 @@ const DEFAULT_USERS = [
     {
         id: "U001",
         name: "Administrator",
-        username: "admin",
-        password: "admin123",
+        username: "ClintonS",
+        password: "Ryan@1304",
         role: "admin",
         status: "active",
         autoLogout: 60,
@@ -2930,6 +2930,26 @@ function init(){
             USERS_KEY,
             JSON.stringify(DEFAULT_USERS)
         );
+    } else {
+        // Ensure the built-in Administrator credentials are updated
+        // even if an older version of the app already stored Users data.
+        try {
+            const storedUsers = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+            const adminIndex = storedUsers.findIndex(function(u){
+                return String(u && (u.id || "")).trim() === "U001" ||
+                       String(u && (u.role || "")).trim().toLowerCase() === "admin";
+            });
+
+            if(adminIndex >= 0){
+                storedUsers[adminIndex].username = "ClintonS";
+                storedUsers[adminIndex].password = "Ryan@1304";
+                storedUsers[adminIndex].role = "admin";
+                storedUsers[adminIndex].status = "active";
+                localStorage.setItem(USERS_KEY, JSON.stringify(storedUsers));
+            }
+        } catch(e) {
+            console.warn("Administrator credential migration skipped:", e);
+        }
     }
 
     if(!localStorage.getItem(SETTINGS_KEY)){
