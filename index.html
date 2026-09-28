@@ -2935,6 +2935,94 @@ const LICENSES_KEY = "smartbio_licenses_v1";
 const AMCCMC_KEY = "smartbio_amccmc_v1";
 const BREAKDOWN_KEY = "smartbio_breakdown_v1";
 
+/* =========================================================
+   GOOGLE APPS SCRIPT BACKEND
+   The HTML keeps a local cache for fast display, while Google
+   Sheets/Drive becomes the shared source of truth.
+========================================================= */
+const SMARTBIO_BACKEND_ENABLED = true;
+let smartBioSessionToken = "";
+
+function smartBioGasAvailable(){
+    return !!(window.google && google.script && google.script.run);
+}
+
+function smartBioGasCall(functionName,args){
+    return new Promise(function(resolve,reject){
+        if(!smartBioGasAvailable()){
+            reject(new Error("Google Apps Script backend is not available. Open this app from the Apps Script web app URL."));
+            return;
+        }
+        try{
+            const runner = google.script.run
+                .withSuccessHandler(resolve)
+                .withFailureHandler(reject);
+            runner[functionName].apply(runner,args||[]);
+        }catch(error){
+            reject(error);
+        }
+    });
+}
+
+function applyBackendSnapshot(snapshot){
+    if(!snapshot) return;
+    try{
+        localStorage.setItem(EQUIPMENT_KEY,JSON.stringify(Array.isArray(snapshot.equipment)?snapshot.equipment:[]));
+        localStorage.setItem(LICENSES_KEY,JSON.stringify(Array.isArray(snapshot.license)?snapshot.license:[]));
+        localStorage.setItem(AMCCMC_KEY,JSON.stringify(Array.isArray(snapshot.amccmc)?snapshot.amccmc:[]));
+        localStorage.setItem(BREAKDOWN_KEY,JSON.stringify(Array.isArray(snapshot.breakdown)?snapshot.breakdown:[]));
+        if(snapshot.users && Array.isArray(snapshot.users)){
+            localStorage.setItem(USERS_KEY,JSON.stringify(snapshot.users));
+        }
+        if(snapshot.settings){
+            localStorage.setItem(SETTINGS_KEY,JSON.stringify({
+                companyName:snapshot.settings.companyName || "JIMSH-NK",
+                logoUrl:snapshot.settings.logoUrl || ""
+            }));
+        }
+    }catch(error){
+        console.error("Backend cache update failed:",error);
+    }
+}
+
+async function syncSmartBioBackend(){
+    if(!SMARTBIO_BACKEND_ENABLED || !smartBioSessionToken) return false;
+    try{
+        const result=await smartBioGasCall("smartbioRefresh",[smartBioSessionToken]);
+        if(!result || !result.ok) throw new Error((result&&result.message)||"Unable to refresh backend data.");
+        applyBackendSnapshot(result.data);
+        refreshAll();
+        return true;
+    }catch(error){
+        console.error("SmartBio backend refresh failed:",error);
+        if(String(error.message||error).toLowerCase().includes("session")){
+            smartBioSessionToken="";
+        }
+        return false;
+    }
+}
+
+function backendSaveModule(moduleName,records){
+    if(!SMARTBIO_BACKEND_ENABLED || !smartBioSessionToken || !smartBioGasAvailable()) return;
+    smartBioGasCall("smartbioSaveModule",[smartBioSessionToken,moduleName,records])
+        .then(function(result){
+            if(result && result.data) applyBackendSnapshot(result.data);
+        })
+        .catch(function(error){
+            console.error("Backend save "+moduleName+" failed:",error);
+            showToast("Local copy saved, but Google Sheet update failed.");
+        });
+}
+
+function backendDeleteModule(moduleName){
+    if(!SMARTBIO_BACKEND_ENABLED || !smartBioSessionToken || !smartBioGasAvailable()) return;
+    smartBioGasCall("smartbioDeleteModule",[smartBioSessionToken,moduleName])
+        .catch(function(error){
+            console.error("Backend delete "+moduleName+" failed:",error);
+            showToast("Local data deleted, but Google Sheet delete failed.");
+        });
+}
+
 let currentUser = null;
 let sessionTimer = null;
 let qrScanner = null;
@@ -3067,13 +3155,13 @@ function saveSettings(){
     const logoUrl =
         document.getElementById("settingLogo").value.trim();
 
-    localStorage.setItem(
-        SETTINGS_KEY,
-        JSON.stringify({
-            companyName,
-            logoUrl
-        })
-    );
+    const newSettings={companyName:companyName,logoUrl:logoUrl};
+    localStorage.setItem(SETTINGS_KEY,JSON.stringify(newSettings));
+
+    if(SMARTBIO_BACKEND_ENABLED && smartBioSessionToken && smartBioGasAvailable()){
+        smartBioGasCall("smartbioSaveSettings",[smartBioSessionToken,newSettings])
+            .catch(function(error){console.error("Settings backend save failed:",error);showToast("Settings saved locally, but Google Sheet update failed.");});
+    }
 
     applySettingsToLogin();
 
@@ -3122,89 +3210,67 @@ function applySettingsToLogin(){
    LOGIN
 ========================================================= */
 
-function login(){
+async function login(){
 
-    const usernameEl = document.getElementById("loginUsername");
-    const passwordEl = document.getElementById("loginPassword");
-    const error = document.getElementById("loginError");
-
-    const username = usernameEl ? String(usernameEl.value || "").trim() : "";
-    const password = passwordEl ? String(passwordEl.value || "") : "";
-
-    if(error) error.textContent = "";
-
+    const usernameEl=document.getElementById("loginUsername");
+    const passwordEl=document.getElementById("loginPassword");
+    const error=document.getElementById("loginError");
+    const username=usernameEl ? String(usernameEl.value||"").trim() : "";
+    const password=passwordEl ? String(passwordEl.value||"") : "";
+    if(error) error.textContent="";
     if(!username || !password){
-        if(error) error.textContent = "Please enter Login ID and Password.";
+        if(error) error.textContent="Please enter Login ID and Password.";
         return false;
     }
 
-    let users = [];
-    try{
-        users = getUsers();
-        if(!Array.isArray(users)) users = [];
-    }catch(e){
-        users = [];
-    }
-
-    const user = users.find(function(u){
-        return String(u && u.username || "").trim().toLowerCase() === username.toLowerCase();
-    });
-
-    if(!user){
-        if(error) error.textContent = "Invalid Login ID or Password.";
-        return false;
-    }
-
-    const userStatus = String(user.status || "active").trim().toLowerCase();
-    if(userStatus !== "active"){
-        if(error) error.textContent = "This user account is inactive.";
-        return false;
-    }
-
-    if(String(user.password == null ? "" : user.password) !== password){
-        if(error) error.textContent = "Invalid Login ID or Password.";
-        return false;
-    }
-
-    currentUser = user;
-
-    /*
-       Open the application first so a problem in a non-critical
-       refresh/render function can never make the Login button appear dead.
-    */
-    const loginScreen = document.getElementById("loginScreen");
-    const app = document.getElementById("app");
-    const success = document.getElementById("loginSuccessModal");
-
-    if(success) success.style.display = "flex";
-
-    setTimeout(function(){
-        if(success) success.style.display = "none";
-        if(loginScreen) loginScreen.style.display = "none";
-        if(app) app.style.display = "block";
-
+    /* Shared Google Sheet login */
+    if(SMARTBIO_BACKEND_ENABLED && smartBioGasAvailable()){
         try{
-            setupApplicationForUser();
-        }catch(setupError){
-            console.error("SmartBio login setup error:", setupError);
-            try{
-                applySettingsToLogin();
-            }catch(ignore){ }
-            try{
-                openPage("dashboard");
-            }catch(ignore2){ }
-        }
-    }, 500);
+            const result=await smartBioGasCall("smartbioLogin",[username,password]);
+            if(!result || !result.ok) throw new Error((result&&result.message)||"Invalid Login ID or Password.");
+            currentUser=result.user;
+            smartBioSessionToken=result.token||"";
+            applyBackendSnapshot(result.data);
 
-    try{
-        startAutoLogoutTimer();
-    }catch(timerError){
-        console.error("SmartBio auto logout error:", timerError);
+            const loginScreen=document.getElementById("loginScreen");
+            const app=document.getElementById("app");
+            const success=document.getElementById("loginSuccessModal");
+            if(success) success.style.display="flex";
+            setTimeout(function(){
+                if(success) success.style.display="none";
+                if(loginScreen) loginScreen.style.display="none";
+                if(app) app.style.display="block";
+                try{ setupApplicationForUser(); showToast("Connected to Google Sheets. Data is live."); }catch(e){ console.error(e); }
+            },500);
+            try{startAutoLogoutTimer();}catch(e){}
+            return false;
+        }catch(errorObj){
+            console.error("Google Sheet login failed:",errorObj);
+            if(error) error.textContent=errorObj.message||"Unable to connect to Google Sheet backend.";
+            return false;
+        }
     }
 
+    /* Standalone fallback if the HTML is opened outside Apps Script. */
+    let users=getUsers();
+    const user=users.find(function(u){return String(u&&u.username||"").trim().toLowerCase()===username.toLowerCase();});
+    if(!user){if(error) error.textContent="Invalid Login ID or Password.";return false;}
+    if(String(user.status||"active").toLowerCase()!=="active"){if(error) error.textContent="This user account is inactive.";return false;}
+    if(String(user.password||"")!==password){if(error) error.textContent="Invalid Login ID or Password.";return false;}
+    currentUser=user;
+    const loginScreen=document.getElementById("loginScreen");
+    const app=document.getElementById("app");
+    const success=document.getElementById("loginSuccessModal");
+    if(success) success.style.display="flex";
+    setTimeout(function(){
+        if(success) success.style.display="none";
+        if(loginScreen) loginScreen.style.display="none";
+        if(app) app.style.display="block";
+        try{setupApplicationForUser();}catch(e){console.error(e);}
+    },500);
+    try{startAutoLogoutTimer();}catch(e){}
     return false;
 }
-
 
 /* =========================================================
    APPLICATION SETUP
@@ -3509,6 +3575,10 @@ function logout(){
 
     clearTimeout(sessionTimer);
 
+    if(smartBioSessionToken && SMARTBIO_BACKEND_ENABLED && smartBioGasAvailable()){
+        smartBioGasCall("smartbioLogout",[smartBioSessionToken]).catch(function(){});
+    }
+    smartBioSessionToken="";
     currentUser = null;
 
     document.getElementById("app").style.display =
@@ -3797,10 +3867,12 @@ function getUsers(){
 
 function saveUsers(users){
 
-    localStorage.setItem(
-        USERS_KEY,
-        JSON.stringify(users)
-    );
+    localStorage.setItem(USERS_KEY,JSON.stringify(users));
+
+    if(SMARTBIO_BACKEND_ENABLED && smartBioSessionToken && smartBioGasAvailable() && currentUser && currentUser.role==="admin"){
+        smartBioGasCall("smartbioSaveUsers",[smartBioSessionToken,users])
+            .catch(function(error){console.error("Users backend save failed:",error);showToast("Users saved locally, but Google Sheet update failed.");});
+    }
 
 }
 
@@ -4266,13 +4338,87 @@ function getEquipment(){
     }
 }
 
-function saveEquipment(data){
+/* Convert everything sent through google.script.run into JSON-safe values.
+   In particular, SheetJS can create JavaScript Date objects from Excel dates.
+   google.script.run rejects Date objects nested inside ordinary objects with:
+   "Failed due to illegal value in property Installation_Date". */
+function smartBioDateToText(value){
+    if(value === null || value === undefined || value === "") return "";
 
-    localStorage.setItem(
-        EQUIPMENT_KEY,
-        JSON.stringify(data)
-    );
+    if(Object.prototype.toString.call(value) === "[object Date]"){
+        if(isNaN(value.getTime())) return "";
+        return String(value.getDate()).padStart(2,"0") + "-" +
+               String(value.getMonth()+1).padStart(2,"0") + "-" +
+               value.getFullYear();
+    }
 
+    return String(value);
+}
+
+function smartBioSanitizeForGoogleScript(value){
+    if(value === null || value === undefined) return "";
+
+    if(Object.prototype.toString.call(value) === "[object Date]"){
+        return smartBioDateToText(value);
+    }
+
+    if(Array.isArray(value)){
+        return value.map(function(item){
+            return smartBioSanitizeForGoogleScript(item);
+        });
+    }
+
+    if(typeof value === "object"){
+        const out = {};
+        Object.keys(value).forEach(function(key){
+            out[key] = smartBioSanitizeForGoogleScript(value[key]);
+        });
+        return out;
+    }
+
+    if(typeof value === "number" || typeof value === "boolean" || typeof value === "string"){
+        return value;
+    }
+
+    return String(value);
+}
+
+function smartBioMakeEquipmentSafe(data){
+    const rows = Array.isArray(data) ? data : [];
+    return rows.map(function(row){
+        const safe = smartBioSanitizeForGoogleScript(row);
+        const dateFields = [
+            "Installation_Date",
+            "PMS_Done_On",
+            "PMS_Due_On",
+            "Calibration_Done_On",
+            "Calibration_Due_On"
+        ];
+        dateFields.forEach(function(field){
+            safe[field] = smartBioDateToText(safe[field]);
+        });
+        return safe;
+    });
+}
+
+async function saveEquipment(data){
+    const safeData = smartBioMakeEquipmentSafe(data);
+
+    /* Keep local copy only after the data has been made safe. */
+    localStorage.setItem(EQUIPMENT_KEY,JSON.stringify(safeData));
+
+    if(SMARTBIO_BACKEND_ENABLED && smartBioSessionToken && smartBioGasAvailable()){
+        const result = await smartBioGasCall(
+            "smartbioSaveModule",
+            [smartBioSessionToken,"equipment",safeData]
+        );
+        if(!result || !result.ok){
+            throw new Error((result && result.message) || "Google Sheet equipment update failed.");
+        }
+        return result;
+    }
+
+    throw new Error("Google Apps Script backend is not connected.");
 }
 
 
@@ -6143,9 +6289,12 @@ function handleExcelImport(event){
                 importedEquipment =
                     rows
                     .map(normalizeImportedRow)
+                    .map(function(row){
+                        return smartBioMakeEquipmentSafe([row])[0];
+                    })
                     .filter(function(r){
 
-                        return r.Asset_No;
+                        return String(r.Asset_No || "").trim() !== "";
 
                     });
 
@@ -6270,7 +6419,7 @@ function renderImportPreview(){
 }
 
 
-function replaceEquipmentFromImport(){
+async function replaceEquipmentFromImport(){
 
     if(!currentUser || currentUser.role!=="admin"){
         showToast("Only Administrator can import equipment from Excel.");
@@ -6292,19 +6441,19 @@ function replaceEquipmentFromImport(){
         return;
     }
 
-    saveEquipment(importedEquipment);
-
-    refreshAll();
-
-    showToast(
-        importedEquipment.length +
-        " equipment records imported."
-    );
+    try{
+        await saveEquipment(importedEquipment);
+        refreshAll();
+        showToast(importedEquipment.length + " equipment records imported and saved to Google Sheet.");
+    }catch(error){
+        console.error("Equipment import save failed:",error);
+        showToast(error.message || "Google Sheet equipment update failed.");
+    }
 
 }
 
 
-function addEquipmentFromImport(){
+async function addEquipmentFromImport(){
 
     if(!currentUser || currentUser.role!=="admin"){
         showToast("Only Administrator can import equipment from Excel.");
@@ -6356,14 +6505,14 @@ function addEquipmentFromImport(){
             byAsset.values()
         );
 
-    saveEquipment(merged);
-
-    refreshAll();
-
-    showToast(
-        importedEquipment.length +
-        " imported records processed."
-    );
+    try{
+        await saveEquipment(merged);
+        refreshAll();
+        showToast(importedEquipment.length + " imported records processed and saved to Google Sheet.");
+    }catch(error){
+        console.error("Equipment import save failed:",error);
+        showToast(error.message || "Google Sheet equipment update failed.");
+    }
 
 }
 
@@ -6696,6 +6845,7 @@ function saveLicenses(data){
             return row;
         });
         localStorage.setItem(LICENSES_KEY,JSON.stringify(clean));
+        backendSaveModule("license",clean);
         const saved=JSON.parse(localStorage.getItem(LICENSES_KEY)||"[]");
         if(saved.length!==clean.length) throw new Error("Saved record count does not match imported record count.");
         return true;
@@ -6817,6 +6967,7 @@ function saveAmcCmc(data){
             return row;
         });
         localStorage.setItem(AMCCMC_KEY,JSON.stringify(clean));
+        backendSaveModule("amccmc",clean);
         const saved=JSON.parse(localStorage.getItem(AMCCMC_KEY)||"[]");
         if(saved.length!==clean.length) throw new Error("Saved record count does not match imported record count.");
         return true;
@@ -7007,6 +7158,7 @@ function saveBreakdowns(data){
 
         const json=JSON.stringify(clean);
         localStorage.setItem(BREAKDOWN_KEY,json);
+        backendSaveModule("breakdown",clean);
 
         const storedRaw=localStorage.getItem(BREAKDOWN_KEY);
         if(!storedRaw){
@@ -7277,14 +7429,32 @@ function openSmartBioPdfDb(){
 function saveSmartBioPdf(file){
     return new Promise(function(resolve,reject){
         if(!file){resolve("");return;}
-        if(String(file.type||"").toLowerCase()!=="application/pdf"){
-            reject(new Error("Only PDF files are allowed."));
+        if(String(file.type||"").toLowerCase()!=="application/pdf"){reject(new Error("Only PDF files are allowed."));return;}
+        if(file.size > 10*1024*1024){reject(new Error("PDF file is too large. Maximum allowed size is 10 MB per PDF."));return;}
+
+        if(SMARTBIO_BACKEND_ENABLED && smartBioSessionToken && smartBioGasAvailable()){
+            const reader=new FileReader();
+            reader.onload=function(){
+                try{
+                    const dataUrl=String(reader.result||"");
+                    const comma=dataUrl.indexOf(",");
+                    const base64=comma>=0 ? dataUrl.slice(comma+1) : dataUrl;
+                    const moduleName=window.smartBioCurrentPdfModule || "Document";
+                    const assetKey=window.smartBioCurrentPdfKey || "";
+                    smartBioGasCall("smartbioUploadPdf",[smartBioSessionToken,base64,file.name,moduleName,assetKey])
+                        .then(function(result){
+                            if(!result || !result.ok || !result.url) throw new Error("PDF upload failed.");
+                            resolve(result.url);
+                        })
+                        .catch(reject);
+                }catch(error){reject(error);}
+            };
+            reader.onerror=function(){reject(new Error("Unable to read PDF file."));};
+            reader.readAsDataURL(file);
             return;
         }
-        if(file.size > 15*1024*1024){
-            reject(new Error("PDF file is too large. Maximum allowed size is 15 MB per PDF."));
-            return;
-        }
+
+        /* Standalone fallback: keep the PDF in IndexedDB. */
         openSmartBioPdfDb().then(function(db){
             const id="PDF_"+Date.now()+"_"+Math.random().toString(36).slice(2,10);
             const tx=db.transaction(SMARTBIO_PDF_STORE,"readwrite");
@@ -7609,7 +7779,14 @@ function manualDateValue(id){
 async function manualPdfValue(id){
     const el=document.getElementById(id);
     const file=el && el.files ? el.files[0] : null;
-    return file ? await saveSmartBioPdf(file) : "";
+    if(!file)return "";
+    const map={
+        meInstallationPdf:"Installation", mePmsPdf:"PMS", meCalibrationPdf:"Calibration", meIqPdf:"IQ", meOqPdf:"OQ", mePqPdf:"PQ",
+        epPmsPdf:"PMS", ecCalPdf:"Calibration", mbPdf:"Breakdown", mlQaPdf:"License_QA", mlAerbPdf:"License_AERB", maPdf:"AMC_CMC"
+    };
+    window.smartBioCurrentPdfModule=map[id]||"Document";
+    window.smartBioCurrentPdfKey=manualValue("meAssetNo")||manualValue("epAssetNo")||manualValue("ecAssetNo")||manualValue("mbId")||manualValue("mlSerial")||manualValue("maEquipment")||"";
+    try{return await saveSmartBioPdf(file);}finally{window.smartBioCurrentPdfModule="";window.smartBioCurrentPdfKey="";}
 }
 
 async function saveManualEntry(type){
@@ -7723,6 +7900,7 @@ function deleteModuleData(moduleName){
 
     try{
         localStorage.removeItem(config.key);
+        backendDeleteModule(moduleName);
 
         /* Clear any active import preview for the same module. */
         if(moduleName==="breakdown"){
