@@ -3240,9 +3240,26 @@ function getDocumentUrl(equipment, moduleName){
     const key = String(moduleName || "").toLowerCase().trim();
 
     const aliases = {
-        installation:["Installation_PDF","Installation_Document","Installation_Link","Installation_Doc","Installation PDF","Installation Document","installation_pdf","installation_document","installation_link","installation_doc"],
-        pms:["PMS_PDF","PMS_Document","PMS_Link","PMS_Doc","PMS PDF","PMS Document","PMS Link","pms_pdf","pms_document","pms_link","pms_doc"],
-        calibration:["Calibration_PDF","Calibration_Document","Calibration_Link","Calibration_Doc","Calibration PDF","Calibration Document","calibration_pdf","calibration_document","calibration_link","calibration_doc"],
+        installation:[
+            "Installation_PDF","Installation_Document","Installation_Link","Installation_Doc",
+            "Installation PDF","Installation Document","Installation Link",
+            "installation_pdf","installation_document","installation_link","installation_doc"
+        ],
+        pms:[
+            "PMS_PDF","PMS_Document","PMS_Link","PMS_Doc",
+            "PMS_Report_PDF","PMS_Service_Report_PDF","PMS_Service_Report",
+            "PMS_Certificate_PDF","PMS_Certificate","PMS_Report","PMS_Service_Report_Document",
+            "PMS PDF","PMS Document","PMS Link","PMS Report PDF","PMS Service Report PDF",
+            "PMS Service Report","PMS Certificate PDF","PMS Certificate","PMS Report",
+            "pms_pdf","pms_document","pms_link","pms_doc","pms_report_pdf",
+            "pms_service_report_pdf","pms_service_report","pms_certificate_pdf","pms_certificate",
+            "pms_report","pms_service_report_document","pms_url","pms_file"
+        ],
+        calibration:[
+            "Calibration_PDF","Calibration_Document","Calibration_Link","Calibration_Doc",
+            "Calibration PDF","Calibration Document","Calibration Link",
+            "calibration_pdf","calibration_document","calibration_link","calibration_doc"
+        ],
         iq:["IQ_PDF","IQ_Document","IQ_Link","IQ PDF","IQ Document","iq_pdf","iq_document","iq_link"],
         oq:["OQ_PDF","OQ_Document","OQ_Link","OQ PDF","OQ Document","oq_pdf","oq_document","oq_link"],
         pq:["PQ_PDF","PQ_Document","PQ_Link","PQ PDF","PQ Document","pq_pdf","pq_document","pq_link"]
@@ -3250,14 +3267,13 @@ function getDocumentUrl(equipment, moduleName){
 
     const fields = aliases[key] || [];
 
-    /* First check all known field names exactly. */
+    /* 1. Check all known field names exactly. */
     for(let i=0;i<fields.length;i++){
         const value = String(equipment[fields[i]] || "").trim();
         if(value) return value;
     }
 
-    /* Then check any stored/imported field whose normalized heading matches.
-       This also handles headings such as “PMS PDF”, “PMS-PDF”, etc. */
+    /* 2. Check normalized headings. This handles spaces, hyphens, dots, etc. */
     const normalizedTargets = fields.map(function(field){
         return normalizeHeader(field);
     });
@@ -3268,6 +3284,35 @@ function getDocumentUrl(equipment, moduleName){
         if(normalizedTargets.indexOf(normalizedKey) !== -1){
             const value = String(equipment[keys[i]] || "").trim();
             if(value) return value;
+        }
+    }
+
+    /* 3. Final PMS-specific fallback.
+       Older Excel files may use headings such as PMS Report, PMS Service Report,
+       PMS Certificate, PMS Service Report PDF, etc. Find a real web link in any
+       PMS document/report field, while deliberately ignoring PMS date fields. */
+    if(key === "pms"){
+        for(let i=0;i<keys.length;i++){
+            const normalizedKey = normalizeHeader(keys[i]);
+            const value = String(equipment[keys[i]] || "").trim();
+
+            if(!value) continue;
+            if(normalizedKey === "pms_pdf") continue;
+            if(normalizedKey.indexOf("pms") !== 0) continue;
+            if(
+                normalizedKey.indexOf("done") !== -1 ||
+                normalizedKey.indexOf("due") !== -1 ||
+                normalizedKey.indexOf("date") !== -1 ||
+                normalizedKey.indexOf("status") !== -1 ||
+                normalizedKey.indexOf("frequency") !== -1
+            ) continue;
+
+            const looksLikeDocumentLink = /^(https?:\/\/)/i.test(value);
+            const looksLikeDocumentField = /(pdf|document|doc|report|certificate|service|link|url|file)/i.test(normalizedKey);
+
+            if(looksLikeDocumentLink && looksLikeDocumentField){
+                return value;
+            }
         }
     }
 
@@ -4724,7 +4769,7 @@ function showEquipment(assetNo){
 
                 ${documentButtonForModule(
                     getDocumentUrl(equipment,"pms"),
-                    "PMS",
+                    "PMS Document",
                     "doc-pms",
                     "pms"
                 )}
@@ -4963,7 +5008,7 @@ function renderPmsTable(){
                         <div class="doc-buttons" style="flex-wrap:wrap">
                             ${documentButtonForModule(
                                 getDocumentUrl(e,"pms"),
-                                "PMS",
+                                "PMS Document",
                                 "doc-pms",
                                 "pms"
                             )}
@@ -5128,12 +5173,10 @@ function normalizeStoredDocumentFields(){
         };
 
         Object.keys(fields).forEach(function(target){
-            if(!String(e[target] || "").trim()){
-                const value = getDocumentUrl(e, fields[target]);
-                if(value){
-                    e[target] = value;
-                    changed = true;
-                }
+            const value = getDocumentUrl(e, fields[target]);
+            if(value && String(e[target] || "").trim() !== value){
+                e[target] = value;
+                changed = true;
             }
         });
     });
@@ -5291,7 +5334,7 @@ function renderDocumentsTable(){
 
                             ${documentButtonForModule(
                                 getDocumentUrl(e,"pms"),
-                                "PMS",
+                                "PMS Document",
                                 "doc-pms",
                                 "pms"
                             )}
@@ -5750,7 +5793,16 @@ const HEADER_ALIASES = {
         "pms_pdf",
         "pms_document",
         "pms_doc",
-        "pms_link"
+        "pms_link",
+        "pms_report_pdf",
+        "pms_service_report_pdf",
+        "pms_service_report",
+        "pms_certificate_pdf",
+        "pms_certificate",
+        "pms_report",
+        "pms_service_report_document",
+        "pms_url",
+        "pms_file"
     ],
 
     Calibration_PDF:[
@@ -6320,7 +6372,7 @@ function exportEquipmentExcel(){
         if(access.pms){
             row.PMS_Done_On = formatDate(e.PMS_Done_On);
             row.PMS_Due_On  = formatDate(e.PMS_Due_On);
-            row.PMS_PDF     = e.PMS_PDF || "";
+            row.PMS_PDF     = getDocumentUrl(e,"pms") || e.PMS_PDF || "";
         }
 
         if(access.calibration){
