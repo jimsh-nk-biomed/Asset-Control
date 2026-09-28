@@ -596,6 +596,36 @@ body{
     grid-column:1/-1;
 }
 
+.manual-upload-box{
+    border:1px dashed #93c5fd;
+    background:#f8fbff;
+    padding:12px;
+    border-radius:10px;
+}
+.manual-upload-box label{
+    display:block;
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:6px;
+}
+.manual-upload-box input[type=file]{
+    width:100%;
+    font-size:12px;
+}
+.manual-note{
+    font-size:11px;
+    color:#64748b;
+    margin-top:5px;
+    line-height:1.5;
+}
+.manual-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:18px;
+    flex-wrap:wrap;
+}
+
 .search-row{
     display:flex;
     gap:10px;
@@ -1484,6 +1514,12 @@ tr:hover td{
 
                         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
                             <button
+                                class="btn btn-green admin-only"
+                                onclick="openManualEntry('equipment')"
+                            >
+                                ➕ Add Equipment
+                            </button>
+                            <button
                                 class="btn btn-primary admin-only"
                                 onclick="openPage('import')"
                             >
@@ -1995,9 +2031,12 @@ tr:hover td{
                             <h1>License Documents</h1>
                             <p>View QA and AERB license/statutory records.</p>
                         </div>
-                        <button class="btn btn-danger admin-only" onclick="deleteModuleData('license')">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+                            <button class="btn btn-green admin-only" onclick="openManualEntry('license')">➕ Add License</button>
+                            <button class="btn btn-danger admin-only" onclick="deleteModuleData('license')">
                             🗑️ Delete All License Data
                         </button>
+                        </div>
                     </div>
                     <div class="card">
                         <div class="search-row">
@@ -2033,9 +2072,12 @@ tr:hover td{
                             <h1>AMC / CMC</h1>
                             <p>AMC and CMC contract register and documents.</p>
                         </div>
-                        <button class="btn btn-danger admin-only" onclick="deleteModuleData('amccmc')">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+                            <button class="btn btn-green admin-only" onclick="openManualEntry('amccmc')">➕ Add AMC / CMC</button>
+                            <button class="btn btn-danger admin-only" onclick="deleteModuleData('amccmc')">
                             🗑️ Delete All AMC / CMC Data
                         </button>
+                        </div>
                     </div>
                     <div class="card">
                         <div class="search-row">
@@ -2074,9 +2116,12 @@ tr:hover td{
                             <h1>Breakdown</h1>
                             <p>View and search equipment breakdown and service records.</p>
                         </div>
-                        <button class="btn btn-danger admin-only" onclick="deleteModuleData('breakdown')">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+                            <button class="btn btn-green admin-only" onclick="openManualEntry('breakdown')">➕ Add Breakdown</button>
+                            <button class="btn btn-danger admin-only" onclick="deleteModuleData('breakdown')">
                             🗑️ Delete All Breakdown Data
                         </button>
+                        </div>
                     </div>
 
                     <div class="card">
@@ -2688,6 +2733,23 @@ tr:hover td{
 
 </div>
 
+
+
+<!-- =========================================================
+     ADMIN MANUAL ENTRY MODAL
+========================================================= -->
+<div class="modal-overlay" id="manualEntryModal">
+    <div class="modal" style="width:1050px;">
+        <div class="modal-header">
+            <div>
+                <h2 id="manualEntryTitle">Add Record</h2>
+                <div class="muted" id="manualEntrySubtitle">Administrator only</div>
+            </div>
+            <button class="close-btn" onclick="closeManualEntry()">✕</button>
+        </div>
+        <div id="manualEntryBody"></div>
+    </div>
+</div>
 
 <!-- =========================================================
      EQUIPMENT DETAIL MODAL
@@ -4876,9 +4938,13 @@ function documentButton(url,label,cls){
 
     if(!url) return "";
 
-    const safe =
-        safeUrl(url);
+    const value=String(url).trim();
 
+    if(value.startsWith(SMARTBIO_PDF_PREFIX)){
+        return `<button type="button" class="doc-btn ${cls}" onclick="openSmartBioDocument('${jsEscape(value)}')">📄 ${escapeHtml(label)}</button>`;
+    }
+
+    const safe=safeUrl(value);
     if(!safe) return "";
 
     return `
@@ -6651,8 +6717,8 @@ function renderLicenseTable(){
     tbody.innerHTML=rows.map(function(x){
         const qa=licenseStatus({Expiry_Date:x.QA_Expiry_Date}).type, aerb=licenseStatus({Expiry_Date:x.AERB_Due_On}).type;
         const badge=function(st){return st==="expired"?'<span class="badge badge-red">Expired</span>':st==="expiring"?'<span class="badge badge-orange">Expiring Soon</span>':'<span class="badge badge-green">Valid</span>';};
-        const qaLink=x.QA_PDF?'<a class="doc-btn doc-install" href="'+escapeAttr(x.QA_PDF)+'" target="_blank" rel="noopener">📄 QA</a>':'<span class="muted">-</span>';
-        const aerbLink=x.AERB_PDF?'<a class="doc-btn doc-install" href="'+escapeAttr(x.AERB_PDF)+'" target="_blank" rel="noopener">📄 AERB</a>':'<span class="muted">-</span>';
+        const qaLink=x.QA_PDF?documentButtonForStoredValue(x.QA_PDF,"QA","doc-install"): '<span class="muted">-</span>';
+        const aerbLink=x.AERB_PDF?documentButtonForStoredValue(x.AERB_PDF,"AERB","doc-install"): '<span class="muted">-</span>';
         return `<tr><td>${escapeHtml(x.Department||"")}</td><td>${escapeHtml(x.Equipment||"")}</td><td>${escapeHtml(x.Model||"")}</td><td>${escapeHtml(x.Make||"")}</td><td>${escapeHtml(x.Serial_No||"")}</td><td>${escapeHtml(formatDate(x.QA_Performed_Date||""))}</td><td>${escapeHtml(formatDate(x.QA_Expiry_Date||""))}<br>${badge(qa)}</td><td>${escapeHtml(x.QA_Performed_By||"")}</td><td>${escapeHtml(formatDate(x.AERB_Done_On||""))}</td><td>${escapeHtml(formatDate(x.AERB_Due_On||""))}<br>${badge(aerb)}</td><td>${qaLink}</td><td>${aerbLink}</td></tr>`;
     }).join("");
 }
@@ -6764,7 +6830,7 @@ function renderAmcCmcTable(){
     const q=String(document.getElementById("amccmcSearch")?.value||"").toLowerCase().trim(),filter=String(document.getElementById("amccmcStatusFilter")?.value||"all");
     const rows=getAmcCmc().filter(x=>{const hay=[x.Department,x.Company,x.Equipment,x.Contract_Type,x.Payment_Terms,x.PMS_Frequency].join(" ").toLowerCase();const st=amcCmcStatus(x).type;return(!q||hay.includes(q))&&(filter==="all"||st===filter);});
     if(!rows.length){tbody.innerHTML='<tr><td colspan="11" class="empty">No AMC / CMC records found.</td></tr>';return;}
-    tbody.innerHTML=rows.map(x=>{const st=amcCmcStatus(x).type,badge=st==="expired"?'<span class="badge badge-red">Expired</span>':st==="expiring"?'<span class="badge badge-orange">Expiring Soon</span>':'<span class="badge badge-green">Valid</span>';const doc=x.Contract_PDF?'<a class="doc-btn doc-install" href="'+escapeAttr(x.Contract_PDF)+'" target="_blank" rel="noopener">📄 Contract</a>':'<span class="muted">-</span>';return `<tr><td>${escapeHtml(x.Department||"")}</td><td>${escapeHtml(x.Company||"")}</td><td>${escapeHtml(x.Equipment||"")}</td><td>${escapeHtml(x.Contract_Type||"")}</td><td>${escapeHtml(formatDate(x.Contract_Start_Date||""))}</td><td>${escapeHtml(formatDate(x.Contract_End_Date||""))}<br>${badge}</td><td>${escapeHtml(x.Payment_Terms||"")}</td><td>${escapeHtml(x.Contract_Amount||"")}</td><td>${escapeHtml(x.PMS_Frequency||"")}</td><td>${doc}</td><td>${badge}</td></tr>`;}).join("");
+    tbody.innerHTML=rows.map(x=>{const st=amcCmcStatus(x).type,badge=st==="expired"?'<span class="badge badge-red">Expired</span>':st==="expiring"?'<span class="badge badge-orange">Expiring Soon</span>':'<span class="badge badge-green">Valid</span>';const doc=x.Contract_PDF?documentButtonForStoredValue(x.Contract_PDF,"Contract","doc-install"):'<span class="muted">-</span>';return `<tr><td>${escapeHtml(x.Department||"")}</td><td>${escapeHtml(x.Company||"")}</td><td>${escapeHtml(x.Equipment||"")}</td><td>${escapeHtml(x.Contract_Type||"")}</td><td>${escapeHtml(formatDate(x.Contract_Start_Date||""))}</td><td>${escapeHtml(formatDate(x.Contract_End_Date||""))}<br>${badge}</td><td>${escapeHtml(x.Payment_Terms||"")}</td><td>${escapeHtml(x.Contract_Amount||"")}</td><td>${escapeHtml(x.PMS_Frequency||"")}</td><td>${doc}</td><td>${badge}</td></tr>`;}).join("");
 }
 function normalizeAmcCmcRow(row){const pick=function(keys){const n={};Object.keys(row).forEach(k=>n[normalizeHeader(k)]=row[k]);for(let i=0;i<keys.length;i++){const k=normalizeHeader(keys[i]);if(Object.prototype.hasOwnProperty.call(n,k))return n[k];}return "";};return {Department:String(pick(["Department"])||"").trim(),Company:String(pick(["Company"])||"").trim(),Equipment:String(pick(["Equipment"])||"").trim(),Contract_Type:String(pick(["Contract Type","Contract_Type"])||"").trim(),Contract_Start_Date:pick(["Contract Start Date","Contract_Start_Date"]),Contract_End_Date:pick(["Contract End Date","Contract_End_Date"]),Payment_Terms:String(pick(["Payment Terms","Payment_Terms"])||"").trim(),Contract_Amount:String(pick(["Contract Amount","Contract_Amount"])||"").trim(),PMS_Frequency:String(pick(["PMS Freuqency","PMS Frequency","PMS_Frequency"])||"").trim(),Contract_PDF:String(pick(["Contract_PDF"])||"").trim()};}
 function handleAmcCmcExcelImport(event){
@@ -6862,7 +6928,7 @@ function renderBreakdownTable(){
     }
 
     tbody.innerHTML=rows.map(function(b){
-        const doc=b.Breakdown_Service_Report_PDF?'<a class="doc-btn doc-install" href="'+escapeAttr(b.Breakdown_Service_Report_PDF)+'" target="_blank" rel="noopener">📄 View Report</a>':'<span class="muted">No Report</span>';
+        const doc=b.Breakdown_Service_Report_PDF?documentButtonForStoredValue(b.Breakdown_Service_Report_PDF,"View Report","doc-install"):'<span class="muted">No Report</span>';
         return `<tr><td>${escapeHtml(b.Breakdown_ID||"")}</td><td>${escapeHtml(formatDate(b.Complain_Date)||"")}</td><td>${escapeHtml(b.Complain_Time||"")}</td><td>${escapeHtml(b.Asset_Number||"")}</td><td>${escapeHtml(b.Department||"")}</td><td>${escapeHtml(b.Equipment_Description||"")}</td><td>${escapeHtml(b.Model||"")}</td><td>${escapeHtml(b.Make||"")}</td><td>${escapeHtml(b.Serial_No||"")}</td><td>${escapeHtml(b.Nature_Of_Complain||"")}</td><td>${escapeHtml(b.Action_Taken||"")}</td><td>${escapeHtml(b.Spare_Used||"")}</td><td>${escapeHtml(formatDate(b.Finish_Date)||"")}</td><td>${escapeHtml(b.Finish_Time||"")}</td><td>${escapeHtml(b.Repairing_Cost||"")}</td><td>${escapeHtml(b.Downtime||"")}</td><td><span class="badge ${breakdownStatusClass(b.Equipment_Status)}">${escapeHtml(b.Equipment_Status||"")}</span></td><td>${doc}</td></tr>`;
     }).join("");
 }
@@ -7163,6 +7229,278 @@ function loadSettingsForm(){
 }
 
 
+
+/* =========================================================
+   ADMIN MANUAL ENTRY + PDF UPLOADS
+   PDFs are stored in IndexedDB so they do not consume the
+   normal localStorage quota. Records keep a small PDF reference.
+========================================================= */
+
+const SMARTBIO_PDF_DB_NAME = "SmartBioPdfStoreV1";
+const SMARTBIO_PDF_STORE = "files";
+const SMARTBIO_PDF_PREFIX = "__SMARTBIO_PDF__:";
+
+function openSmartBioPdfDb(){
+    return new Promise(function(resolve,reject){
+        if(!window.indexedDB){
+            reject(new Error("This browser does not support IndexedDB PDF storage."));
+            return;
+        }
+        const request=window.indexedDB.open(SMARTBIO_PDF_DB_NAME,1);
+        request.onupgradeneeded=function(e){
+            const db=e.target.result;
+            if(!db.objectStoreNames.contains(SMARTBIO_PDF_STORE)){
+                db.createObjectStore(SMARTBIO_PDF_STORE,{keyPath:"id"});
+            }
+        };
+        request.onsuccess=function(e){resolve(e.target.result);};
+        request.onerror=function(){reject(request.error||new Error("Unable to open PDF storage."));};
+    });
+}
+
+function saveSmartBioPdf(file){
+    return new Promise(function(resolve,reject){
+        if(!file){resolve("");return;}
+        if(String(file.type||"").toLowerCase()!=="application/pdf"){
+            reject(new Error("Only PDF files are allowed."));
+            return;
+        }
+        if(file.size > 15*1024*1024){
+            reject(new Error("PDF file is too large. Maximum allowed size is 15 MB per PDF."));
+            return;
+        }
+        openSmartBioPdfDb().then(function(db){
+            const id="PDF_"+Date.now()+"_"+Math.random().toString(36).slice(2,10);
+            const tx=db.transaction(SMARTBIO_PDF_STORE,"readwrite");
+            tx.objectStore(SMARTBIO_PDF_STORE).put({id:id,blob:file,name:file.name,size:file.size,type:"application/pdf",createdAt:new Date().toISOString()});
+            tx.oncomplete=function(){resolve(SMARTBIO_PDF_PREFIX+id);};
+            tx.onerror=function(){reject(tx.error||new Error("PDF could not be stored."));};
+        }).catch(reject);
+    });
+}
+
+function getSmartBioPdfBlob(ref){
+    return new Promise(function(resolve,reject){
+        if(!String(ref||"").startsWith(SMARTBIO_PDF_PREFIX)){resolve(null);return;}
+        openSmartBioPdfDb().then(function(db){
+            const id=String(ref).slice(SMARTBIO_PDF_PREFIX.length);
+            const tx=db.transaction(SMARTBIO_PDF_STORE,"readonly");
+            const request=tx.objectStore(SMARTBIO_PDF_STORE).get(id);
+            request.onsuccess=function(){resolve(request.result ? request.result.blob : null);};
+            request.onerror=function(){reject(request.error||new Error("PDF could not be read."));};
+        }).catch(reject);
+    });
+}
+
+async function openSmartBioDocument(ref){
+    const value=String(ref||"").trim();
+    if(!value){showToast("Document not available.");return;}
+    if(value.startsWith(SMARTBIO_PDF_PREFIX)){
+        const popup=window.open("about:blank","_blank");
+        try{
+            const blob=await getSmartBioPdfBlob(value);
+            if(!blob){if(popup)popup.close();showToast("Uploaded PDF could not be found.");return;}
+            const url=URL.createObjectURL(blob);
+            if(popup){popup.location.href=url;}else{window.location.href=url;}
+            setTimeout(function(){URL.revokeObjectURL(url);},10*60*1000);
+        }catch(error){
+            if(popup)popup.close();
+            console.error(error);
+            showToast("Unable to open the uploaded PDF.");
+        }
+        return;
+    }
+    const url=safeUrl(value);
+    if(url){window.open(value,"_blank","noopener,noreferrer");}
+    else showToast("Document link is invalid or unavailable.");
+}
+
+function documentButtonForStoredValue(value,label,cls){
+    const v=String(value||"").trim();
+    if(!v)return "";
+    if(v.startsWith(SMARTBIO_PDF_PREFIX)){
+        return `<button type="button" class="doc-btn ${cls}" onclick="openSmartBioDocument('${jsEscape(v)}')">📄 ${escapeHtml(label)}</button>`;
+    }
+    return documentButton(v,label,cls);
+}
+
+function pdfInput(id,label){
+    return '<div class="manual-upload-box"><label>'+escapeHtml(label)+'</label><input type="file" id="'+id+'" accept="application/pdf,.pdf"><div class="manual-note">PDF only. You can upload the scanned document here.</div></div>';
+}
+
+function manualField(id,label,value,type,extraClass){
+    return '<div class="form-field '+(extraClass||'')+'"><label>'+escapeHtml(label)+'</label><input id="'+id+'" type="'+(type||'text')+'" value="'+escapeAttr(value||"")+'"></div>';
+}
+
+function manualSelect(id,label,options,value,extraClass){
+    return '<div class="form-field '+(extraClass||'')+'"><label>'+escapeHtml(label)+'</label><select id="'+id+'">'+options.map(function(o){return '<option value="'+escapeAttr(o.value)+'" '+(String(value||"")===String(o.value)?'selected':'')+'>'+escapeHtml(o.label)+'</option>';}).join('')+'</select></div>';
+}
+
+function openManualEntry(type){
+    if(!currentUser || currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    const modal=document.getElementById("manualEntryModal");
+    const body=document.getElementById("manualEntryBody");
+    if(!modal||!body)return;
+    let title="Add Record",subtitle="Administrator only — manual entry and PDF upload",html="";
+
+    if(type==="equipment"){
+        title="Add Equipment Manually";
+        subtitle="Add one equipment record and upload its scanned PDF documents.";
+        html='<div class="card" style="box-shadow:none;padding:0">'+
+            '<div class="form-grid">'+
+            manualField("meAssetNo","Asset No")+
+            manualField("meDepartment","Department")+
+            manualField("meEquipment","Equipment")+
+            manualField("meModel","Model")+
+            manualField("meMake","Make")+
+            manualField("meSerialNo","Serial No")+
+            manualField("meInstallationDate","Installation Date","date")+
+            manualField("mePmsDone","PMS Done On","date")+
+            manualField("mePmsDue","PMS Due On","date")+
+            manualField("meCalDone","Calibration Done On","date")+
+            manualField("meCalDue","Calibration Due On","date")+
+            '<div class="full"><h3 style="margin:4px 0 10px">Equipment Documents</h3><div class="form-grid">'+
+            pdfInput("meInstallationPdf","Installation PDF")+
+            pdfInput("mePmsPdf","PMS PDF")+
+            pdfInput("meCalibrationPdf","Calibration PDF")+
+            pdfInput("meIqPdf","IQ PDF")+
+            pdfInput("meOqPdf","OQ PDF")+
+            pdfInput("mePqPdf","PQ PDF")+
+            '</div></div></div></div>' ;
+    }else if(type==="breakdown"){
+        title="Add Breakdown Manually";
+        subtitle="Enter the breakdown/service details and upload the scanned service report PDF.";
+        html='<div class="form-grid">'+
+            manualField("mbId","Breakdown ID")+
+            manualField("mbAsset","Asset Number")+
+            manualField("mbComplaintDate","Complain Date","date")+
+            manualField("mbComplaintTime","Complain Time","time")+
+            manualField("mbDepartment","Department")+
+            manualField("mbEquipment","Equipment Description")+
+            manualField("mbModel","Model")+
+            manualField("mbMake","Make")+
+            manualField("mbSerial","Serial No")+
+            manualField("mbComplaint","Nature Of Complain","text","full")+
+            '<div class="form-field full"><label>Action Taken</label><textarea id="mbAction"></textarea></div>'+
+            manualField("mbSpare","Spare Used")+
+            manualField("mbFinishDate","Finish Date","date")+
+            manualField("mbFinishTime","Finish Time","time")+
+            manualField("mbCost","Repairing Cost")+
+            manualField("mbDowntime","Downtime")+
+            manualSelect("mbStatus","Equipment Status",[{value:"Open",label:"Open"},{value:"In Progress",label:"In Progress"},{value:"Closed",label:"Closed"}],"Open")+
+            '<div class="full">'+pdfInput("mbPdf","Breakdown Service Report PDF")+'</div>'+
+            '</div>';
+    }else if(type==="license"){
+        title="Add License Manually";
+        subtitle="Enter QA / AERB details and upload the scanned license documents.";
+        html='<div class="form-grid">'+
+            manualField("mlDepartment","Department")+
+            manualField("mlEquipment","Equipment")+
+            manualField("mlModel","Model")+
+            manualField("mlMake","Make")+
+            manualField("mlSerial","Serial No")+
+            manualField("mlQaDone","QA Performed Date","date")+
+            manualField("mlQaExpiry","QA Expiry Date","date")+
+            manualField("mlQaBy","QA Performed By")+
+            manualField("mlAerbDone","AERB Done On","date")+
+            manualField("mlAerbDue","AERB Due On","date")+
+            '<div class="full"><div class="form-grid">'+pdfInput("mlQaPdf","QA PDF")+pdfInput("mlAerbPdf","AERB PDF")+'</div></div>'+
+            '</div>';
+    }else if(type==="amccmc"){
+        title="Add AMC / CMC Manually";
+        subtitle="Enter the contract details and upload the scanned contract PDF.";
+        html='<div class="form-grid">'+
+            manualField("maDepartment","Department")+
+            manualField("maCompany","Company")+
+            manualField("maEquipment","Equipment")+
+            manualField("maType","Contract Type")+
+            manualField("maStart","Contract Start Date","date")+
+            manualField("maEnd","Contract End Date","date")+
+            manualField("maPayment","Payment Terms")+
+            manualField("maAmount","Contract Amount")+
+            manualField("maFrequency","PMS Freuqency")+
+            '<div class="full">'+pdfInput("maPdf","Contract PDF")+'</div>'+
+            '</div>';
+    }else{
+        showToast("Invalid manual entry type.");return;
+    }
+
+    document.getElementById("manualEntryTitle").textContent=title;
+    document.getElementById("manualEntrySubtitle").textContent=subtitle;
+    body.innerHTML=html+`<div class="manual-actions"><button class="btn btn-secondary" onclick="closeManualEntry()">Cancel</button><button class="btn btn-green" onclick="saveManualEntry('${type}')">💾 Save Record</button></div>`;
+    modal.style.display="flex";
+}
+
+function closeManualEntry(){
+    const modal=document.getElementById("manualEntryModal");
+    if(modal)modal.style.display="none";
+}
+
+function manualValue(id){
+    const el=document.getElementById(id);
+    return el ? String(el.value||"").trim() : "";
+}
+
+function manualDateValue(id){
+    const v=manualValue(id);
+    if(!v)return "";
+    const parts=v.split("-");
+    return parts.length===3 ? parts[2]+"-"+parts[1]+"-"+parts[0] : v;
+}
+
+async function manualPdfValue(id){
+    const el=document.getElementById(id);
+    const file=el && el.files ? el.files[0] : null;
+    return file ? await saveSmartBioPdf(file) : "";
+}
+
+async function saveManualEntry(type){
+    if(!currentUser || currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    const button=document.querySelector("#manualEntryBody .manual-actions .btn-green");
+    if(button){button.disabled=true;button.textContent="Saving...";}
+    try{
+        if(type==="equipment"){
+            const asset=manualValue("meAssetNo");
+            if(!asset || !manualValue("meDepartment") || !manualValue("meEquipment")){throw new Error("Asset No, Department and Equipment are required.");}
+            const data=getEquipment();
+            if(data.some(function(x){return String(x.Asset_No||"").toLowerCase()===asset.toLowerCase();})){throw new Error("This Asset No already exists.");}
+            const row={Asset_No:asset,Department:manualValue("meDepartment"),Equipment:manualValue("meEquipment"),Model:manualValue("meModel"),Make:manualValue("meMake"),Serial_No:manualValue("meSerialNo"),Installation_Date:manualDateValue("meInstallationDate"),PMS_Done_On:manualDateValue("mePmsDone"),PMS_Due_On:manualDateValue("mePmsDue"),Calibration_Done_On:manualDateValue("meCalDone"),Calibration_Due_On:manualDateValue("meCalDue"),Installation_PDF:await manualPdfValue("meInstallationPdf"),PMS_PDF:await manualPdfValue("mePmsPdf"),Calibration_PDF:await manualPdfValue("meCalibrationPdf"),IQ_PDF:await manualPdfValue("meIqPdf"),OQ_PDF:await manualPdfValue("meOqPdf"),PQ_PDF:await manualPdfValue("mePqPdf")};
+            data.push(row);
+            saveEquipment(data);
+            renderEquipmentTable();renderDocumentsTable();renderPmsTable();renderCalibrationTable();refreshDashboard();
+            showToast("Equipment added successfully.");
+        }else if(type==="breakdown"){
+            const id=manualValue("mbId");
+            if(!id || !manualValue("mbAsset") || !manualValue("mbDepartment")){throw new Error("Breakdown ID, Asset Number and Department are required.");}
+            const data=getBreakdowns();
+            if(data.some(function(x){return String(x.Breakdown_ID||"").toLowerCase()===id.toLowerCase();})){throw new Error("This Breakdown ID already exists.");}
+            data.push({Breakdown_ID:id,Complain_Date:manualDateValue("mbComplaintDate"),Complain_Time:manualValue("mbComplaintTime"),Asset_Number:manualValue("mbAsset"),Department:manualValue("mbDepartment"),Equipment_Description:manualValue("mbEquipment"),Model:manualValue("mbModel"),Make:manualValue("mbMake"),Serial_No:manualValue("mbSerial"),Nature_Of_Complain:manualValue("mbComplaint"),Action_Taken:manualValue("mbAction"),Spare_Used:manualValue("mbSpare"),Finish_Date:manualDateValue("mbFinishDate"),Finish_Time:manualValue("mbFinishTime"),Repairing_Cost:manualValue("mbCost"),Downtime:manualValue("mbDowntime"),Equipment_Status:manualValue("mbStatus")||"Open",Breakdown_Service_Report_PDF:await manualPdfValue("mbPdf")});
+            if(!saveBreakdowns(data))throw new Error("Breakdown could not be saved.");
+            renderBreakdownTable();showToast("Breakdown added successfully.");
+        }else if(type==="license"){
+            const department=manualValue("mlDepartment"),equipment=manualValue("mlEquipment");
+            if(!department||!equipment){throw new Error("Department and Equipment are required.");}
+            const data=getLicenses();
+            data.push({Department:department,Equipment:equipment,Model:manualValue("mlModel"),Make:manualValue("mlMake"),Serial_No:manualValue("mlSerial"),QA_Performed_Date:manualDateValue("mlQaDone"),QA_Expiry_Date:manualDateValue("mlQaExpiry"),QA_Performed_By:manualValue("mlQaBy"),AERB_Done_On:manualDateValue("mlAerbDone"),AERB_Due_On:manualDateValue("mlAerbDue"),QA_PDF:await manualPdfValue("mlQaPdf"),AERB_PDF:await manualPdfValue("mlAerbPdf")});
+            if(!saveLicenses(data))throw new Error("License could not be saved.");
+            renderLicenseTable();showToast("License record added successfully.");
+        }else if(type==="amccmc"){
+            const department=manualValue("maDepartment"),company=manualValue("maCompany"),equipment=manualValue("maEquipment");
+            if(!department||!company||!equipment){throw new Error("Department, Company and Equipment are required.");}
+            const data=getAmcCmc();
+            data.push({Department:department,Company:company,Equipment:equipment,Contract_Type:manualValue("maType"),Contract_Start_Date:manualDateValue("maStart"),Contract_End_Date:manualDateValue("maEnd"),Payment_Terms:manualValue("maPayment"),Contract_Amount:manualValue("maAmount"),PMS_Frequency:manualValue("maFrequency"),Contract_PDF:await manualPdfValue("maPdf")});
+            if(!saveAmcCmc(data))throw new Error("AMC / CMC record could not be saved.");
+            renderAmcCmcTable();showToast("AMC / CMC record added successfully.");
+        }
+        closeManualEntry();
+    }catch(error){
+        console.error("Manual entry failed:",error);
+        showToast(error.message||"Unable to save the record.");
+    }finally{
+        if(button){button.disabled=false;button.textContent="💾 Save Record";}
+    }
+}
+
 /* =========================================================
    ADMIN DATA DELETE
 ========================================================= */
@@ -7412,6 +7750,17 @@ function showToast(message){
 /* =========================================================
    CLOSE MODAL WHEN BACKDROP CLICKED
 ========================================================= */
+
+document.getElementById("manualEntryModal")
+    .addEventListener(
+        "click",
+        function(e){
+            if(e.target===this){
+                closeManualEntry();
+            }
+        }
+    );
+
 
 document.getElementById("equipmentModal")
     .addEventListener(
