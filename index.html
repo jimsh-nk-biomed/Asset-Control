@@ -1655,6 +1655,7 @@ tr:hover td{
                                 Preventive Maintenance status
                             </p>
                         </div>
+                        <button class="btn btn-green admin-only" onclick="openPmsEditPrompt()">✏️ Edit PMS</button>
                     </div>
 
                     <div class="card">
@@ -1743,6 +1744,7 @@ tr:hover td{
                                 Calibration status
                             </p>
                         </div>
+                        <button class="btn btn-orange admin-only" onclick="openCalibrationEditPrompt()">✏️ Edit Calibration</button>
                     </div>
 
                     <div class="card">
@@ -5111,6 +5113,13 @@ function renderPmsTable(){
                                 "doc-pms",
                                 "pms"
                             )}
+                            ${currentUser && currentUser.role==="admin" ? `
+                            <button
+                                class="btn btn-green btn-small"
+                                onclick="openPmsEdit('${jsEscape(e.Asset_No)}')"
+                            >
+                                ✏️ Edit PMS
+                            </button>` : ""}
                             <button
                                 class="btn btn-primary btn-small"
                                 onclick="showEquipment('${jsEscape(e.Asset_No)}')"
@@ -5241,6 +5250,13 @@ function renderCalibrationTable(){
                                 "doc-cal",
                                 "calibration"
                             )}
+                            ${currentUser && currentUser.role==="admin" ? `
+                            <button
+                                class="btn btn-orange btn-small"
+                                onclick="openCalibrationEdit('${jsEscape(e.Asset_No)}')"
+                            >
+                                ✏️ Edit Calibration
+                            </button>` : ""}
                             <button
                                 class="btn btn-primary btn-small"
                                 onclick="showEquipment('${jsEscape(e.Asset_No)}')"
@@ -7429,6 +7445,148 @@ function openManualEntry(type){
     document.getElementById("manualEntrySubtitle").textContent=subtitle;
     body.innerHTML=html+`<div class="manual-actions"><button class="btn btn-secondary" onclick="closeManualEntry()">Cancel</button><button class="btn btn-green" onclick="saveManualEntry('${type}')">💾 Save Record</button></div>`;
     modal.style.display="flex";
+}
+
+function storedDateToInput(value){
+    const v=String(value||"").trim();
+    if(!v)return "";
+    if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;
+    const m=v.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+    if(m)return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0");
+    const d=new Date(v);
+    if(!isNaN(d.getTime())){
+        return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    }
+    return "";
+}
+
+function getEquipmentByAsset(assetNo){
+    const key=String(assetNo||"").trim().toLowerCase();
+    return getEquipment().find(function(e){
+        return String(e.Asset_No||"").trim().toLowerCase()===key;
+    }) || null;
+}
+
+function openPmsEditPrompt(){
+    if(!currentUser || currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    const asset=window.prompt("Enter Asset No to edit PMS:");
+    if(asset && String(asset).trim())openPmsEdit(String(asset).trim());
+}
+
+function openCalibrationEditPrompt(){
+    if(!currentUser || currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    const asset=window.prompt("Enter Asset No to edit Calibration:");
+    if(asset && String(asset).trim())openCalibrationEdit(String(asset).trim());
+}
+
+function openPmsEdit(assetNo){
+    if(!currentUser || currentUser.role!=="admin"){
+        showToast("Administrator access required.");
+        return;
+    }
+    const equipment=getEquipmentByAsset(assetNo);
+    if(!equipment){showToast("Equipment record not found.");return;}
+
+    const modal=document.getElementById("manualEntryModal");
+    const body=document.getElementById("manualEntryBody");
+    document.getElementById("manualEntryTitle").textContent="Edit PMS";
+    document.getElementById("manualEntrySubtitle").textContent="Update PMS dates and upload a new scanned PMS PDF if required.";
+
+    body.innerHTML='<div class="card" style="box-shadow:none;padding:0">'+
+        '<div class="form-grid">'+
+        manualField("epAssetNo","Asset No",equipment.Asset_No)+
+        manualField("epEquipment","Equipment",equipment.Equipment)+
+        manualField("epDepartment","Department",equipment.Department)+
+        manualField("epModel","Model",equipment.Model)+
+        manualField("epMake","Make",equipment.Make)+
+        manualField("epSerialNo","Serial No",equipment.Serial_No)+
+        manualField("epPmsDone","PMS Done On",storedDateToInput(equipment.PMS_Done_On),"date")+
+        manualField("epPmsDue","PMS Due On",storedDateToInput(equipment.PMS_Due_On),"date")+
+        '<div class="full">'+pdfInput("epPmsPdf","PMS PDF")+
+        '<div class="manual-note" style="margin-top:6px">Current document: '+(getDocumentUrl(equipment,"pms")?'<b>Available</b>':'<b>Not uploaded</b>')+'. Leave the file empty to keep the existing document.</div></div>'+
+        '</div></div>'+
+        '<div class="manual-actions"><button class="btn btn-secondary" onclick="closeManualEntry()">Cancel</button><button class="btn btn-green" onclick="savePmsEdit(\''+jsEscape(equipment.Asset_No)+'\')">💾 Update PMS</button></div>';
+    modal.style.display="flex";
+}
+
+async function savePmsEdit(assetNo){
+    if(!currentUser || currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    const data=getEquipment();
+    const index=data.findIndex(function(e){return String(e.Asset_No||"").trim().toLowerCase()===String(assetNo||"").trim().toLowerCase();});
+    if(index<0){showToast("Equipment record not found.");return;}
+    const button=document.querySelector("#manualEntryBody .manual-actions .btn-green");
+    if(button){button.disabled=true;button.textContent="Updating...";}
+    try{
+        const row=data[index];
+        row.PMS_Done_On=manualDateValue("epPmsDone");
+        row.PMS_Due_On=manualDateValue("epPmsDue");
+        const pdf=await manualPdfValue("epPmsPdf");
+        if(pdf)row.PMS_PDF=pdf;
+        saveEquipment(data);
+        refreshAll();
+        closeManualEntry();
+        showToast("PMS updated successfully.");
+    }catch(error){
+        console.error("PMS update failed:",error);
+        showToast(error.message||"Unable to update PMS.");
+    }finally{
+        if(button){button.disabled=false;button.textContent="💾 Update PMS";}
+    }
+}
+
+function openCalibrationEdit(assetNo){
+    if(!currentUser || currentUser.role!=="admin"){
+        showToast("Administrator access required.");
+        return;
+    }
+    const equipment=getEquipmentByAsset(assetNo);
+    if(!equipment){showToast("Equipment record not found.");return;}
+
+    const modal=document.getElementById("manualEntryModal");
+    const body=document.getElementById("manualEntryBody");
+    document.getElementById("manualEntryTitle").textContent="Edit Calibration";
+    document.getElementById("manualEntrySubtitle").textContent="Update Calibration dates and upload a new scanned Calibration PDF if required.";
+
+    body.innerHTML='<div class="card" style="box-shadow:none;padding:0">'+
+        '<div class="form-grid">'+
+        manualField("ecAssetNo","Asset No",equipment.Asset_No)+
+        manualField("ecEquipment","Equipment",equipment.Equipment)+
+        manualField("ecDepartment","Department",equipment.Department)+
+        manualField("ecModel","Model",equipment.Model)+
+        manualField("ecMake","Make",equipment.Make)+
+        manualField("ecSerialNo","Serial No",equipment.Serial_No)+
+        manualField("ecCalDone","Calibration Done On",storedDateToInput(equipment.Calibration_Done_On),"date")+
+        manualField("ecCalDue","Calibration Due On",storedDateToInput(equipment.Calibration_Due_On),"date")+
+        '<div class="full">'+pdfInput("ecCalPdf","Calibration PDF")+
+        '<div class="manual-note" style="margin-top:6px">Current document: '+(getDocumentUrl(equipment,"calibration")?'<b>Available</b>':'<b>Not uploaded</b>')+'. Leave the file empty to keep the existing document.</div></div>'+
+        '</div></div>'+
+        '<div class="manual-actions"><button class="btn btn-secondary" onclick="closeManualEntry()">Cancel</button><button class="btn btn-orange" onclick="saveCalibrationEdit(\''+jsEscape(equipment.Asset_No)+'\')">💾 Update Calibration</button></div>';
+    modal.style.display="flex";
+}
+
+async function saveCalibrationEdit(assetNo){
+    if(!currentUser || currentUser.role!=="admin"){showToast("Administrator access required.");return;}
+    const data=getEquipment();
+    const index=data.findIndex(function(e){return String(e.Asset_No||"").trim().toLowerCase()===String(assetNo||"").trim().toLowerCase();});
+    if(index<0){showToast("Equipment record not found.");return;}
+    const button=document.querySelector("#manualEntryBody .manual-actions .btn-orange");
+    if(button){button.disabled=true;button.textContent="Updating...";}
+    try{
+        const row=data[index];
+        row.Calibration_Done_On=manualDateValue("ecCalDone");
+        row.Calibration_Due_On=manualDateValue("ecCalDue");
+        const pdf=await manualPdfValue("ecCalPdf");
+        if(pdf)row.Calibration_PDF=pdf;
+        saveEquipment(data);
+        refreshAll();
+        closeManualEntry();
+        showToast("Calibration updated successfully.");
+    }catch(error){
+        console.error("Calibration update failed:",error);
+        showToast(error.message||"Unable to update Calibration.");
+    }finally{
+        if(button){button.disabled=false;button.textContent="💾 Update Calibration";}
+    }
 }
 
 function closeManualEntry(){
