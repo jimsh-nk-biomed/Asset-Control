@@ -3257,8 +3257,15 @@ function getDocumentUrl(equipment, moduleName){
         ],
         calibration:[
             "Calibration_PDF","Calibration_Document","Calibration_Link","Calibration_Doc",
-            "Calibration PDF","Calibration Document","Calibration Link",
-            "calibration_pdf","calibration_document","calibration_link","calibration_doc"
+            "Calibration_Report_PDF","Calibration_Service_Report_PDF","Calibration_Service_Report",
+            "Calibration_Certificate_PDF","Calibration_Certificate","Calibration_Report","Calibration_Service_Report_Document",
+            "Calibration PDF","Calibration Document","Calibration Link","Calibration Report PDF",
+            "Calibration Service Report PDF","Calibration Service Report","Calibration Certificate PDF",
+            "Calibration Certificate","Calibration Report","Calibration Service Report Document",
+            "calibration_pdf","calibration_document","calibration_link","calibration_doc",
+            "calibration_report_pdf","calibration_service_report_pdf","calibration_service_report",
+            "calibration_certificate_pdf","calibration_certificate","calibration_report",
+            "calibration_service_report_document","calibration_url","calibration_file"
         ],
         iq:["IQ_PDF","IQ_Document","IQ_Link","IQ PDF","IQ Document","iq_pdf","iq_document","iq_link"],
         oq:["OQ_PDF","OQ_Document","OQ_Link","OQ PDF","OQ Document","oq_pdf","oq_document","oq_link"],
@@ -3299,6 +3306,32 @@ function getDocumentUrl(equipment, moduleName){
             if(!value) continue;
             if(normalizedKey === "pms_pdf") continue;
             if(normalizedKey.indexOf("pms") !== 0) continue;
+            if(
+                normalizedKey.indexOf("done") !== -1 ||
+                normalizedKey.indexOf("due") !== -1 ||
+                normalizedKey.indexOf("date") !== -1 ||
+                normalizedKey.indexOf("status") !== -1 ||
+                normalizedKey.indexOf("frequency") !== -1
+            ) continue;
+
+            const looksLikeDocumentLink = /^(https?:\/\/)/i.test(value);
+            const looksLikeDocumentField = /(pdf|document|doc|report|certificate|service|link|url|file)/i.test(normalizedKey);
+
+            if(looksLikeDocumentLink && looksLikeDocumentField){
+                return value;
+            }
+        }
+    }
+
+    /* Calibration fallback for older Excel files with descriptive headings. */
+    if(key === "calibration"){
+        for(let i=0;i<keys.length;i++){
+            const normalizedKey = normalizeHeader(keys[i]);
+            const value = String(equipment[keys[i]] || "").trim();
+
+            if(!value) continue;
+            if(normalizedKey === "calibration_pdf") continue;
+            if(normalizedKey.indexOf("calibration") !== 0) continue;
             if(
                 normalizedKey.indexOf("done") !== -1 ||
                 normalizedKey.indexOf("due") !== -1 ||
@@ -4776,7 +4809,7 @@ function showEquipment(assetNo){
 
                 ${documentButtonForModule(
                     getDocumentUrl(equipment,"calibration"),
-                    "Calibration",
+                    "Calibration Document",
                     "doc-cal",
                     "calibration"
                 )}
@@ -5135,12 +5168,20 @@ function renderCalibrationTable(){
                     </td>
 
                     <td>
-                        <button
-                            class="btn btn-primary btn-small"
-                            onclick="showEquipment('${jsEscape(e.Asset_No)}')"
-                        >
-                            View
-                        </button>
+                        <div class="doc-buttons" style="flex-wrap:wrap">
+                            ${documentButtonForModule(
+                                getDocumentUrl(e,"calibration"),
+                                "Calibration Document",
+                                "doc-cal",
+                                "calibration"
+                            )}
+                            <button
+                                class="btn btn-primary btn-small"
+                                onclick="showEquipment('${jsEscape(e.Asset_No)}')"
+                            >
+                                View
+                            </button>
+                        </div>
                     </td>
 
                 </tr>
