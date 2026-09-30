@@ -1083,186 +1083,6 @@ tr:hover td{
         grid-template-columns:1fr;
     }
 }
-
-/* =========================================================
-   SMARTBIO MOBILE FRONT END
-   Mobile-first improvements for phone/tablet access
-========================================================= */
-.mobile-bottom-nav{
-    display:none;
-}
-@media(max-width:800px){
-    body{
-        padding-bottom:74px;
-        overflow-x:hidden;
-    }
-    .topbar{
-        height:58px;
-        padding:0 12px;
-        position:sticky;
-        top:0;
-    }
-    .topbar-title{
-        font-size:16px !important;
-        max-width:190px;
-        white-space:nowrap;
-        overflow:hidden;
-        text-overflow:ellipsis;
-    }
-    .user-chip{
-        max-width:105px;
-        overflow:hidden;
-        text-overflow:ellipsis;
-        white-space:nowrap;
-        font-size:11px !important;
-    }
-    .content{
-        padding:12px !important;
-    }
-    .page-header{
-        gap:10px !important;
-        margin-bottom:12px !important;
-    }
-    .page-header h1{
-        font-size:21px !important;
-    }
-    .page-header p{
-        font-size:12px !important;
-    }
-    .card{
-        border-radius:14px !important;
-        padding:14px !important;
-        margin-bottom:12px !important;
-    }
-    .btn{
-        min-height:42px;
-        padding:10px 13px !important;
-        font-size:12px !important;
-    }
-    .search-row{
-        display:grid !important;
-        grid-template-columns:1fr !important;
-        gap:9px !important;
-    }
-    .search-row input,
-    .search-row select,
-    .form-grid input,
-    .form-grid select,
-    .form-grid textarea{
-        min-height:43px;
-        font-size:14px !important;
-    }
-    .table-wrap{
-        overflow-x:auto !important;
-        -webkit-overflow-scrolling:touch;
-        border-radius:10px;
-    }
-    table{
-        min-width:720px;
-        font-size:11px !important;
-    }
-    .detail-grid{
-        grid-template-columns:1fr !important;
-    }
-    .module-grid{
-        grid-template-columns:1fr 1fr !important;
-        gap:9px !important;
-    }
-    .stat-card{
-        padding:13px !important;
-    }
-    .modal-overlay .modal{
-        width:calc(100vw - 20px) !important;
-        max-width:none !important;
-        max-height:88vh;
-        overflow-y:auto;
-        border-radius:16px !important;
-    }
-    .login-card{
-        width:calc(100vw - 24px) !important;
-        max-width:none !important;
-        padding:24px 18px !important;
-        border-radius:20px !important;
-    }
-    .login-logo img{
-        max-width:220px !important;
-        max-height:75px !important;
-    }
-    .login-title{
-        font-size:22px !important;
-    }
-    .mobile-bottom-nav{
-        position:fixed;
-        display:flex;
-        left:8px;
-        right:8px;
-        bottom:8px;
-        height:60px;
-        z-index:999;
-        background:rgba(255,255,255,.97);
-        border:1px solid var(--border);
-        border-radius:17px;
-        box-shadow:0 10px 30px rgba(15,23,42,.16);
-        backdrop-filter:blur(12px);
-        align-items:center;
-        justify-content:space-around;
-        padding:4px;
-    }
-    .mobile-bottom-nav button{
-        flex:1;
-        height:52px;
-        border:0;
-        background:transparent;
-        color:#64748b;
-        border-radius:13px;
-        font-size:10px;
-        font-weight:700;
-        cursor:pointer;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        gap:3px;
-    }
-    .mobile-bottom-nav button span{
-        font-size:20px;
-        line-height:20px;
-    }
-    .mobile-bottom-nav button.active{
-        color:var(--primary);
-        background:#eaf3ff;
-    }
-    .mobile-bottom-nav .mobile-more{
-        color:#334155;
-    }
-    .sidebar{
-        width:min(290px,86vw) !important;
-        box-shadow:10px 0 30px rgba(15,23,42,.25) !important;
-    }
-    .nav{
-        padding-bottom:20px !important;
-    }
-    .nav button{
-        min-height:44px;
-    }
-    .scanner-container,
-    #reader,
-    #qr-reader{
-        max-width:100% !important;
-    }
-    canvas, video{
-        max-width:100%;
-    }
-}
-@media(max-width:420px){
-    .module-grid{
-        grid-template-columns:1fr !important;
-    }
-    .page-header .btn{
-        width:100%;
-    }
-}
-
 </style>
 </head>
 
@@ -2913,27 +2733,8 @@ tr:hover td{
 
     </div>
 
-
-        <!-- MOBILE QUICK NAVIGATION -->
-        <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Mobile navigation">
-            <button id="mobileNavDashboard" onclick="openPage('dashboard')">
-                <span>🏠</span>Home
-            </button>
-            <button id="mobileNavScanner" onclick="openPage('scanner')">
-                <span>📷</span>Scan
-            </button>
-            <button id="mobileNavEquipment" onclick="openPage('equipment')">
-                <span>🩺</span>Assets
-            </button>
-            <button id="mobileNavDocuments" onclick="openPage('documents')">
-                <span>📄</span>Docs
-            </button>
-            <button class="mobile-more" onclick="toggleSidebar()">
-                <span>☰</span>More
-            </button>
-        </nav>
-
 </div>
+
 
 
 <!-- =========================================================
@@ -3141,6 +2942,7 @@ const BREAKDOWN_KEY = "smartbio_breakdown_v1";
 ========================================================= */
 const SMARTBIO_BACKEND_ENABLED = true;
 let smartBioSessionToken = "";
+let smartBioSyncTimer = null;
 
 function smartBioGasAvailable(){
     return !!(window.google && google.script && google.script.run);
@@ -3221,6 +3023,29 @@ function backendDeleteModule(moduleName){
             showToast("Local data deleted, but Google Sheet delete failed.");
         });
 }
+
+function startSmartBioAutoSync(){
+    if(smartBioSyncTimer) clearInterval(smartBioSyncTimer);
+    smartBioSyncTimer = setInterval(function(){
+        if(currentUser && smartBioSessionToken){
+            syncSmartBioBackend();
+        }
+    }, 30000);
+}
+
+function stopSmartBioAutoSync(){
+    if(smartBioSyncTimer){
+        clearInterval(smartBioSyncTimer);
+        smartBioSyncTimer = null;
+    }
+}
+
+// Refresh shared data whenever the user returns to this browser tab.
+document.addEventListener("visibilitychange",function(){
+    if(!document.hidden && currentUser && smartBioSessionToken){
+        syncSmartBioBackend();
+    }
+});
 
 let currentUser = null;
 let sessionTimer = null;
@@ -3530,6 +3355,7 @@ function setupApplicationForUser(){
     applyDashboardModuleVisibility();
 
     refreshAll();
+    startSmartBioAutoSync();
 
 }
 
@@ -3773,6 +3599,7 @@ function logout(){
     stopScanner();
 
     clearTimeout(sessionTimer);
+    stopSmartBioAutoSync();
 
     if(smartBioSessionToken && SMARTBIO_BACKEND_ENABLED && smartBioGasAvailable()){
         smartBioGasCall("smartbioLogout",[smartBioSessionToken]).catch(function(){});
@@ -3826,16 +3653,7 @@ function startAutoLogoutTimer(){
    PAGE NAVIGATION
 ========================================================= */
 
-function updateMobileBottomNav(page){
-    var ids = ['dashboard','scanner','equipment','documents'];
-    ids.forEach(function(p){
-        var el=document.getElementById('mobileNav'+p.charAt(0).toUpperCase()+p.slice(1));
-        if(el) el.classList.toggle('active', p===page);
-    });
-}
-
 function openPage(page){
-    updateMobileBottomNav(page);
 
     if(!currentUser) return;
 
@@ -4073,19 +3891,24 @@ function getUsers(){
 }
 
 
-function saveUsers(users){
+async function saveUsers(users){
 
     localStorage.setItem(USERS_KEY,JSON.stringify(users));
 
     if(SMARTBIO_BACKEND_ENABLED && smartBioSessionToken && smartBioGasAvailable() && currentUser && currentUser.role==="admin"){
-        smartBioGasCall("smartbioSaveUsers",[smartBioSessionToken,users])
-            .catch(function(error){console.error("Users backend save failed:",error);showToast("Users saved locally, but Google Sheet update failed.");});
+        const result = await smartBioGasCall("smartbioSaveUsers",[smartBioSessionToken,users]);
+        if(!result || !result.ok){
+            throw new Error((result && result.message) || "Google Sheet user update failed.");
+        }
+        return result;
     }
+
+    throw new Error("Google Apps Script backend is not connected.");
 
 }
 
 
-function createUser(){
+async function createUser(){
 
     if(!currentUser || currentUser.role!=="admin"){
 
@@ -4205,7 +4028,16 @@ function createUser(){
 
     users.push(newUser);
 
-    saveUsers(users);
+    try{
+        showToast("Saving user to Google Sheet...");
+        await saveUsers(users);
+    }catch(error){
+        console.error("User creation failed:",error);
+        users.pop();
+        localStorage.setItem(USERS_KEY,JSON.stringify(users));
+        showToast("User was NOT saved to Google Sheet: " + (error.message || error));
+        return;
+    }
 
     document.getElementById("newFullName").value = "";
     document.getElementById("newUsername").value = "";
@@ -4365,7 +4197,7 @@ function closeEditUserModal(){
 }
 
 
-function saveEditedUser(){
+async function saveEditedUser(){
 
     if(!currentUser || currentUser.role!=="admin"){
         showToast("Administrator access required.");
@@ -4414,7 +4246,14 @@ function saveEditedUser(){
         breakdown: document.getElementById("editBreakdown").checked
     };
 
-    saveUsers(users);
+    try{
+        showToast("Saving user changes to Google Sheet...");
+        await saveUsers(users);
+    }catch(error){
+        console.error("User update failed:",error);
+        showToast("User changes were NOT saved: " + (error.message || error));
+        return;
+    }
     closeEditUserModal();
     renderUsersTable();
 
@@ -4422,7 +4261,7 @@ function saveEditedUser(){
 }
 
 
-function toggleUserStatus(id){
+async function toggleUserStatus(id){
 
     if(!currentUser || currentUser.role!=="admin"){
         showToast("Administrator access required.");
@@ -4452,7 +4291,16 @@ function toggleUserStatus(id){
     }
 
     user.status = newStatus;
-    saveUsers(users);
+    try{
+        showToast("Saving user status to Google Sheet...");
+        await saveUsers(users);
+    }catch(error){
+        console.error("User status update failed:",error);
+        user.status = willDeactivate ? "active" : "inactive";
+        localStorage.setItem(USERS_KEY,JSON.stringify(users));
+        showToast("User status was NOT saved: " + (error.message || error));
+        return;
+    }
     renderUsersTable();
 
     showToast(
@@ -4461,7 +4309,7 @@ function toggleUserStatus(id){
 }
 
 
-function deleteUser(id){
+async function deleteUser(id){
 
     if(!currentUser || currentUser.role!=="admin"){
 
@@ -4492,7 +4340,14 @@ function deleteUser(id){
             return u.id!==id;
         });
 
-    saveUsers(updated);
+    try{
+        showToast("Deleting user from Google Sheet...");
+        await saveUsers(updated);
+    }catch(error){
+        console.error("User deletion failed:",error);
+        showToast("User was NOT deleted: " + (error.message || error));
+        return;
+    }
 
     renderUsersTable();
 
@@ -4546,86 +4401,15 @@ function getEquipment(){
     }
 }
 
-/* Convert everything sent through google.script.run into JSON-safe values.
-   In particular, SheetJS can create JavaScript Date objects from Excel dates.
-   google.script.run rejects Date objects nested inside ordinary objects with:
-   "Failed due to illegal value in property Installation_Date". */
-function smartBioDateToText(value){
-    if(value === null || value === undefined || value === "") return "";
-
-    if(Object.prototype.toString.call(value) === "[object Date]"){
-        if(isNaN(value.getTime())) return "";
-        return String(value.getDate()).padStart(2,"0") + "-" +
-               String(value.getMonth()+1).padStart(2,"0") + "-" +
-               value.getFullYear();
-    }
-
-    return String(value);
-}
-
-function smartBioSanitizeForGoogleScript(value){
-    if(value === null || value === undefined) return "";
-
-    if(Object.prototype.toString.call(value) === "[object Date]"){
-        return smartBioDateToText(value);
-    }
-
-    if(Array.isArray(value)){
-        return value.map(function(item){
-            return smartBioSanitizeForGoogleScript(item);
-        });
-    }
-
-    if(typeof value === "object"){
-        const out = {};
-        Object.keys(value).forEach(function(key){
-            out[key] = smartBioSanitizeForGoogleScript(value[key]);
-        });
-        return out;
-    }
-
-    if(typeof value === "number" || typeof value === "boolean" || typeof value === "string"){
-        return value;
-    }
-
-    return String(value);
-}
-
-function smartBioMakeEquipmentSafe(data){
-    const rows = Array.isArray(data) ? data : [];
-    return rows.map(function(row){
-        const safe = smartBioSanitizeForGoogleScript(row);
-        const dateFields = [
-            "Installation_Date",
-            "PMS_Done_On",
-            "PMS_Due_On",
-            "Calibration_Done_On",
-            "Calibration_Due_On"
-        ];
-        dateFields.forEach(function(field){
-            safe[field] = smartBioDateToText(safe[field]);
-        });
-        return safe;
-    });
-}
-
 async function saveEquipment(data){
-    const safeData = smartBioMakeEquipmentSafe(data);
-
-    /* Keep local copy only after the data has been made safe. */
+    const safeData = (Array.isArray(data) ? data : []).map(makeEquipmentSafeForBackend);
     localStorage.setItem(EQUIPMENT_KEY,JSON.stringify(safeData));
 
     if(SMARTBIO_BACKEND_ENABLED && smartBioSessionToken && smartBioGasAvailable()){
-        const result = await smartBioGasCall(
-            "smartbioSaveModule",
-            [smartBioSessionToken,"equipment",safeData]
-        );
-        if(!result || !result.ok){
-            throw new Error((result && result.message) || "Google Sheet equipment update failed.");
-        }
+        const result = await smartBioGasCall("smartbioSaveModule",[smartBioSessionToken,"equipment",safeData]);
+        if(!result || !result.ok) throw new Error((result && result.message) || "Google Sheet equipment update failed.");
         return result;
     }
-
     throw new Error("Google Apps Script backend is not connected.");
 }
 
@@ -6354,87 +6138,80 @@ function getMappedValue(row,field){
 }
 
 
+function excelDateToText(value){
+    if(value === null || value === undefined || value === "") return "";
+
+    if(Object.prototype.toString.call(value) === "[object Date]"){
+        if(isNaN(value.getTime())) return "";
+        return String(value.getDate()).padStart(2,"0") + "-" +
+               String(value.getMonth()+1).padStart(2,"0") + "-" +
+               value.getFullYear();
+    }
+
+    if(typeof value === "number" && isFinite(value)){
+        const excelEpoch = new Date(Date.UTC(1899,11,30));
+        const date = new Date(excelEpoch.getTime() + value * 86400000);
+        return String(date.getUTCDate()).padStart(2,"0") + "-" +
+               String(date.getUTCMonth()+1).padStart(2,"0") + "-" +
+               date.getUTCFullYear();
+    }
+
+    return String(value).trim();
+}
+
+function makeEquipmentSafeForBackend(row){
+    const safe = {};
+    const fields = [
+        "Asset_No","Department","Equipment","Model","Make","Serial_No",
+        "Installation_Date","PMS_Done_On","PMS_Due_On",
+        "Calibration_Done_On","Calibration_Due_On",
+        "Installation_PDF","PMS_PDF","Calibration_PDF",
+        "IQ_PDF","OQ_PDF","PQ_PDF"
+    ];
+
+    fields.forEach(function(field){
+        let value = row ? row[field] : "";
+        if(field === "Installation_Date" || field === "PMS_Done_On" ||
+           field === "PMS_Due_On" || field === "Calibration_Done_On" ||
+           field === "Calibration_Due_On"){
+            value = excelDateToText(value);
+        }else{
+            if(value === null || value === undefined) value = "";
+            if(typeof value === "object"){
+                if(value.url) value = value.url;
+                else if(value.text) value = value.text;
+                else if(value.value) value = value.value;
+                else value = String(value);
+            }else{
+                value = String(value);
+            }
+        }
+        safe[field] = value;
+    });
+    return safe;
+}
+
 function normalizeImportedRow(row){
-
-    return {
-
-        Asset_No:
-            String(
-                getMappedValue(row,"Asset_No") || ""
-            ).trim(),
-
-        Department:
-            String(
-                getMappedValue(row,"Department") || ""
-            ).trim(),
-
-        Equipment:
-            String(
-                getMappedValue(row,"Equipment") || ""
-            ).trim(),
-
-        Model:
-            String(
-                getMappedValue(row,"Model") || ""
-            ).trim(),
-
-        Make:
-            String(
-                getMappedValue(row,"Make") || ""
-            ).trim(),
-
-        Serial_No:
-            String(
-                getMappedValue(row,"Serial_No") || ""
-            ).trim(),
-
-        Installation_Date:
-            getMappedValue(row,"Installation_Date"),
-
-        PMS_Done_On:
-            getMappedValue(row,"PMS_Done_On"),
-
-        PMS_Due_On:
-            getMappedValue(row,"PMS_Due_On"),
-
-        Calibration_Done_On:
-            getMappedValue(row,"Calibration_Done_On"),
-
-        Calibration_Due_On:
-            getMappedValue(row,"Calibration_Due_On"),
-
-        Installation_PDF:
-            String(
-                getMappedValue(row,"Installation_PDF") || ""
-            ).trim(),
-
-        PMS_PDF:
-            String(
-                getMappedValue(row,"PMS_PDF") || ""
-            ).trim(),
-
-        Calibration_PDF:
-            String(
-                getMappedValue(row,"Calibration_PDF") || ""
-            ).trim(),
-
-        IQ_PDF:
-            String(
-                getMappedValue(row,"IQ_PDF") || ""
-            ).trim(),
-
-        OQ_PDF:
-            String(
-                getMappedValue(row,"OQ_PDF") || ""
-            ).trim(),
-
-        PQ_PDF:
-            String(
-                getMappedValue(row,"PQ_PDF") || ""
-            ).trim()
-
+    const mapped = {
+        Asset_No:String(getMappedValue(row,"Asset_No") || "").trim(),
+        Department:String(getMappedValue(row,"Department") || "").trim(),
+        Equipment:String(getMappedValue(row,"Equipment") || "").trim(),
+        Model:String(getMappedValue(row,"Model") || "").trim(),
+        Make:String(getMappedValue(row,"Make") || "").trim(),
+        Serial_No:String(getMappedValue(row,"Serial_No") || "").trim(),
+        Installation_Date:getMappedValue(row,"Installation_Date"),
+        PMS_Done_On:getMappedValue(row,"PMS_Done_On"),
+        PMS_Due_On:getMappedValue(row,"PMS_Due_On"),
+        Calibration_Done_On:getMappedValue(row,"Calibration_Done_On"),
+        Calibration_Due_On:getMappedValue(row,"Calibration_Due_On"),
+        Installation_PDF:String(getMappedValue(row,"Installation_PDF") || "").trim(),
+        PMS_PDF:String(getMappedValue(row,"PMS_PDF") || "").trim(),
+        Calibration_PDF:String(getMappedValue(row,"Calibration_PDF") || "").trim(),
+        IQ_PDF:String(getMappedValue(row,"IQ_PDF") || "").trim(),
+        OQ_PDF:String(getMappedValue(row,"OQ_PDF") || "").trim(),
+        PQ_PDF:String(getMappedValue(row,"PQ_PDF") || "").trim()
     };
-
+    return makeEquipmentSafeForBackend(mapped);
 }
 
 
@@ -6497,12 +6274,9 @@ function handleExcelImport(event){
                 importedEquipment =
                     rows
                     .map(normalizeImportedRow)
-                    .map(function(row){
-                        return smartBioMakeEquipmentSafe([row])[0];
-                    })
                     .filter(function(r){
 
-                        return String(r.Asset_No || "").trim() !== "";
+                        return r.Asset_No;
 
                     });
 
@@ -6627,101 +6401,39 @@ function renderImportPreview(){
 }
 
 
-async function replaceEquipmentFromImport(){
-
+async function sendEquipmentImport(mode){
     if(!currentUser || currentUser.role!=="admin"){
         showToast("Only Administrator can import equipment from Excel.");
         return;
     }
-
     if(!importedEquipment.length){
-
-        showToast(
-            "Please select an Excel file first."
-        );
-
+        showToast("Please select an Excel file first.");
         return;
     }
-
-    if(!confirm(
-        "This will replace all existing equipment records. Continue?"
-    )){
-        return;
-    }
+    if(mode === "replace" && !confirm("This will replace all existing equipment records. Continue?")) return;
 
     try{
-        await saveEquipment(importedEquipment);
-        refreshAll();
-        showToast(importedEquipment.length + " equipment records imported and saved to Google Sheet.");
+        showToast("Saving equipment to Google Sheets...");
+        const safeRows = importedEquipment.map(makeEquipmentSafeForBackend);
+        if(!SMARTBIO_BACKEND_ENABLED || !smartBioSessionToken || !smartBioGasAvailable()){
+            throw new Error("Google Apps Script backend is not connected. Open the SmartBio Web App URL.");
+        }
+        const result = await smartBioGasCall("smartbioImportEquipment",[smartBioSessionToken,safeRows,mode]);
+        if(!result || !result.ok) throw new Error((result && result.message) || "Equipment import failed.");
+        await syncSmartBioBackend();
+        showToast(result.imported + " imported; " + result.total + " total equipment records saved.");
     }catch(error){
-        console.error("Equipment import save failed:",error);
-        showToast(error.message || "Google Sheet equipment update failed.");
+        console.error("Equipment import failed:",error);
+        showToast(error.message || "Equipment import failed.");
     }
-
 }
 
+function replaceEquipmentFromImport(){
+    sendEquipmentImport("replace");
+}
 
-async function addEquipmentFromImport(){
-
-    if(!currentUser || currentUser.role!=="admin"){
-        showToast("Only Administrator can import equipment from Excel.");
-        return;
-    }
-
-    if(!importedEquipment.length){
-
-        showToast(
-            "Please select an Excel file first."
-        );
-
-        return;
-    }
-
-    const existing =
-        getEquipment();
-
-    const byAsset = new Map();
-
-    existing.forEach(function(e){
-
-        if(e.Asset_No){
-
-            byAsset.set(
-                String(e.Asset_No).toLowerCase(),
-                e
-            );
-
-        }
-
-    });
-
-    importedEquipment.forEach(function(e){
-
-        if(e.Asset_No){
-
-            byAsset.set(
-                String(e.Asset_No).toLowerCase(),
-                e
-            );
-
-        }
-
-    });
-
-    const merged =
-        Array.from(
-            byAsset.values()
-        );
-
-    try{
-        await saveEquipment(merged);
-        refreshAll();
-        showToast(importedEquipment.length + " imported records processed and saved to Google Sheet.");
-    }catch(error){
-        console.error("Equipment import save failed:",error);
-        showToast(error.message || "Google Sheet equipment update failed.");
-    }
-
+function addEquipmentFromImport(){
+    sendEquipmentImport("add");
 }
 
 
