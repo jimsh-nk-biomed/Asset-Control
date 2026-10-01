@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
 
 <meta name="viewport"
@@ -10,155 +9,43 @@
 <title>SmartBio Biomedical Equipment Tracker</title>
 
 <style>
-
-html,
-body{
+html,body{
     margin:0;
     padding:0;
     width:100%;
     height:100%;
+    overflow:hidden;
     font-family:Arial,Helvetica,sans-serif;
 }
 
-body{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:
-        radial-gradient(circle at 20% 20%, #dbeafe 0%, transparent 35%),
-        radial-gradient(circle at 80% 80%, #bfdbfe 0%, transparent 35%),
-        linear-gradient(135deg,#f8fbff,#eef6ff);
-    overflow:hidden;
-}
-
-.container{
-    width:92%;
-    max-width:460px;
-    text-align:center;
-    background:white;
-    border-radius:24px;
-    padding:40px 28px;
-    box-shadow:
-        0 20px 60px rgba(21,101,192,.18);
-}
-
-.logo{
-    width:82px;
-    height:82px;
-    margin:0 auto 20px;
-    border-radius:22px;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    background:linear-gradient(
-        135deg,
-        #1565c0,
-        #42a5f5
-    );
-
-    color:white;
-    font-size:28px;
-    font-weight:900;
-
-    box-shadow:
-        0 10px 25px rgba(21,101,192,.25);
-}
-
-h1{
-    margin:0;
-    color:#123b67;
-    font-size:25px;
-}
-
-.subtitle{
-    margin-top:10px;
-    color:#64748b;
-    font-size:14px;
-    line-height:1.5;
-}
-
-.openBtn{
+#smartbioFrame{
     width:100%;
-    margin-top:28px;
-
+    height:100%;
     border:0;
-    border-radius:14px;
-
-    padding:16px;
-
-    background:linear-gradient(
-        135deg,
-        #1565c0,
-        #1976d2
-    );
-
-    color:white;
-
-    font-size:17px;
-    font-weight:700;
-
-    cursor:pointer;
-
-    box-shadow:
-        0 10px 25px rgba(21,101,192,.25);
-
-    transition:.2s;
+    display:block;
 }
 
-.openBtn:hover{
-    transform:translateY(-2px);
-    box-shadow:
-        0 14px 30px rgba(21,101,192,.30);
-}
-
-.openBtn:active{
-    transform:scale(.98);
-}
-
-.cameraInfo{
-    margin-top:20px;
-    padding:13px;
-
-    border-radius:12px;
-
-    background:#eff6ff;
-    color:#2563eb;
-
-    font-size:12px;
-    line-height:1.5;
-}
-
-.footer{
-    margin-top:22px;
-    color:#94a3b8;
-    font-size:11px;
-}
-
-.loading{
-    display:none;
-    margin-top:18px;
+#loading{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#f4f8fc;
     color:#1565c0;
-    font-size:13px;
-    font-weight:600;
+    font-size:16px;
+    font-weight:700;
+    z-index:10;
 }
 
 .spinner{
-    display:inline-block;
-
-    width:16px;
-    height:16px;
-
-    border:3px solid #dbeafe;
+    width:25px;
+    height:25px;
+    border:4px solid #dbeafe;
     border-top-color:#1565c0;
-
     border-radius:50%;
-
     animation:spin .8s linear infinite;
-
-    vertical-align:middle;
-    margin-right:7px;
+    margin-right:10px;
 }
 
 @keyframes spin{
@@ -166,69 +53,21 @@ h1{
         transform:rotate(360deg);
     }
 }
-
 </style>
-
 </head>
 
 <body>
 
-<div class="container">
-
-    <div class="logo">
-        SB
-    </div>
-
-    <h1>
-        SmartBio
-    </h1>
-
-    <div class="subtitle">
-        Biomedical Equipment Tracker
-        <br>
-        Hospital Equipment Management System
-    </div>
-
-    <button
-        class="openBtn"
-        id="openButton"
-        onclick="openSmartBio()"
-    >
-        🚀 Open SmartBio
-    </button>
-
-    <div
-        class="loading"
-        id="loading"
-    >
-        <span class="spinner"></span>
-        Opening SmartBio...
-    </div>
-
-    <div class="cameraInfo">
-
-        📷 <b>QR Scanner Ready</b>
-        <br><br>
-
-        For the best camera experience,
-        SmartBio will open directly in your browser.
-
-        <br>
-
-        When you select
-        <b>QR Scanner</b>,
-        allow camera permission when requested.
-
-    </div>
-
-    <div class="footer">
-
-        SmartBio Biomedical Equipment Tracker
-
-    </div>
-
+<div id="loading">
+    <div class="spinner"></div>
+    Opening SmartBio...
 </div>
 
+<iframe
+    id="smartbioFrame"
+    allow="camera; microphone"
+    allowfullscreen>
+</iframe>
 
 <script>
 
@@ -237,7 +76,12 @@ h1{
 SMARTBIO APPS SCRIPT WEB APP URL
 =========================================================
 
-Your working Apps Script Web App URL
+PASTE YOUR WORKING APPS SCRIPT /exec URL BELOW.
+
+Example:
+
+https://script.google.com/macros/s/XXXXXXXXXXXX/exec
+
 =========================================================
 */
 
@@ -245,47 +89,31 @@ const SMARTBIO_APP_URL =
 "https://script.google.com/macros/s/AKfycbyuKac_oXfIYKgmz8Nqsvn8BFWCTQWnrOQWbHPB3dUkvbFcOONaOhrZx2V5K-alCCzg/exec";
 
 
-function openSmartBio(){
+const frame =
+document.getElementById("smartbioFrame");
 
-    const button =
-        document.getElementById("openButton");
-
-    const loading =
-        document.getElementById("loading");
+const loading =
+document.getElementById("loading");
 
 
-    if(
-        !SMARTBIO_APP_URL ||
-        SMARTBIO_APP_URL.indexOf("/exec") === -1
-    ){
+if(
+    SMARTBIO_APP_URL.indexOf("PASTE_YOUR_REAL_EXEC_URL_HERE") !== -1
+){
+    loading.innerHTML =
+        "<div style='text-align:center;color:#dc2626'>" +
+        "<b>SmartBio URL not configured.</b><br><br>" +
+        "Please add your Apps Script Web App /exec URL." +
+        "</div>";
+}
+else{
 
-        alert(
-            "SmartBio Apps Script Web App URL is not configured correctly."
-        );
+    frame.src = SMARTBIO_APP_URL;
 
-        return;
-    }
-
-
-    button.style.display = "none";
-
-    loading.style.display = "block";
-
-
-    /*
-    =====================================================
-    OPEN SMARTBIO AS THE MAIN BROWSER PAGE
-    =====================================================
-    
-    IMPORTANT:
-    Do NOT use iframe.
-
-    This allows the SmartBio Apps Script page to request
-    camera permission directly from Chrome.
-    */
-
-    window.location.href =
-        SMARTBIO_APP_URL;
+    frame.onload = function(){
+        setTimeout(function(){
+            loading.style.display = "none";
+        },500);
+    };
 
 }
 
