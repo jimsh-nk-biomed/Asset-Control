@@ -35,7 +35,7 @@ html,body{
     color:#1565c0;
     font-size:16px;
     font-weight:700;
-    z-index:10;
+    z-index:100;
 }
 
 .spinner{
@@ -53,6 +53,173 @@ html,body{
         transform:rotate(360deg);
     }
 }
+
+
+/* =========================================================
+   SMARTBIO CAMERA OVERLAY
+========================================================= */
+
+#cameraOverlay{
+    position:fixed;
+    inset:0;
+    background:#000;
+    z-index:1000;
+    display:none;
+    flex-direction:column;
+}
+
+#cameraTop{
+    height:60px;
+    background:#111827;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 15px;
+    box-sizing:border-box;
+    flex-shrink:0;
+}
+
+#cameraTitle{
+    font-size:17px;
+    font-weight:700;
+}
+
+#cameraClose{
+    border:0;
+    background:#dc2626;
+    color:#fff;
+    border-radius:8px;
+    padding:9px 14px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+#cameraArea{
+    position:relative;
+    flex:1;
+    background:#000;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+#cameraVideo{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    background:#000;
+}
+
+#scanBox{
+    position:absolute;
+    width:min(72vw,300px);
+    height:min(72vw,300px);
+    max-width:300px;
+    max-height:300px;
+    border:3px solid #22c55e;
+    border-radius:18px;
+    box-shadow:
+        0 0 0 9999px rgba(0,0,0,.38);
+    pointer-events:none;
+}
+
+#scanLine{
+    position:absolute;
+    left:5%;
+    right:5%;
+    height:3px;
+    background:#22c55e;
+    top:50%;
+    animation:scanMove 2s linear infinite;
+}
+
+@keyframes scanMove{
+    0%{
+        transform:translateY(-120px);
+        opacity:.4;
+    }
+
+    50%{
+        opacity:1;
+    }
+
+    100%{
+        transform:translateY(120px);
+        opacity:.4;
+    }
+}
+
+#cameraBottom{
+    background:#111827;
+    color:#fff;
+    padding:14px;
+    text-align:center;
+    flex-shrink:0;
+}
+
+#cameraStatus{
+    font-size:14px;
+    margin-bottom:10px;
+}
+
+#cameraStart{
+    border:0;
+    background:#1565c0;
+    color:#fff;
+    border-radius:9px;
+    padding:11px 20px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+#cameraSwitch{
+    border:0;
+    background:#374151;
+    color:#fff;
+    border-radius:9px;
+    padding:11px 20px;
+    font-weight:700;
+    cursor:pointer;
+    margin-left:7px;
+}
+
+#cameraError{
+    display:none;
+    color:#fecaca;
+    background:#7f1d1d;
+    padding:10px;
+    border-radius:8px;
+    margin-top:8px;
+    font-size:13px;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:600px){
+
+    #cameraTop{
+        height:56px;
+    }
+
+    #cameraTitle{
+        font-size:15px;
+    }
+
+    #cameraClose{
+        padding:8px 11px;
+    }
+
+    #cameraBottom{
+        padding:12px;
+    }
+
+}
 </style>
 </head>
 
@@ -63,27 +230,93 @@ html,body{
     Opening SmartBio...
 </div>
 
+
+<!-- =========================================================
+     EXISTING SMARTBIO APPLICATION
+========================================================= -->
+
 <iframe
     id="smartbioFrame"
     allow="camera; microphone"
     allowfullscreen>
 </iframe>
 
+
+<!-- =========================================================
+     CAMERA OVERLAY
+     THIS IS ONLY USED FOR QR SCANNING
+========================================================= -->
+
+<div id="cameraOverlay">
+
+    <div id="cameraTop">
+
+        <div id="cameraTitle">
+            📷 SmartBio QR Scanner
+        </div>
+
+        <button
+            id="cameraClose"
+            onclick="closeCamera()">
+            ✕ Close
+        </button>
+
+    </div>
+
+
+    <div id="cameraArea">
+
+        <video
+            id="cameraVideo"
+            autoplay
+            muted
+            playsinline>
+        </video>
+
+        <div id="scanBox">
+            <div id="scanLine"></div>
+        </div>
+
+    </div>
+
+
+    <div id="cameraBottom">
+
+        <div id="cameraStatus">
+            Point the camera at the equipment QR code.
+        </div>
+
+        <button
+            id="cameraStart"
+            onclick="startCamera()">
+            📷 Start Camera
+        </button>
+
+        <button
+            id="cameraSwitch"
+            onclick="switchCamera()">
+            🔄 Switch Camera
+        </button>
+
+        <div id="cameraError"></div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     QR DECODER
+========================================================= -->
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+
 <script>
 
-/*
-=========================================================
-SMARTBIO APPS SCRIPT WEB APP URL
-=========================================================
-
-PASTE YOUR WORKING APPS SCRIPT /exec URL BELOW.
-
-Example:
-
-https://script.google.com/macros/s/XXXXXXXXXXXX/exec
-
-=========================================================
-*/
+/* =========================================================
+   SMARTBIO APPS SCRIPT URL
+========================================================= */
 
 const SMARTBIO_APP_URL =
 "https://script.google.com/macros/s/AKfycbyuKac_oXfIYKgmz8Nqsvn8BFWCTQWnrOQWbHPB3dUkvbFcOONaOhrZx2V5K-alCCzg/exec";
@@ -96,24 +329,794 @@ const loading =
 document.getElementById("loading");
 
 
+/* =========================================================
+   OPEN SMARTBIO
+========================================================= */
+
 if(
     SMARTBIO_APP_URL.indexOf("PASTE_YOUR_REAL_EXEC_URL_HERE") !== -1
 ){
+
     loading.innerHTML =
         "<div style='text-align:center;color:#dc2626'>" +
         "<b>SmartBio URL not configured.</b><br><br>" +
         "Please add your Apps Script Web App /exec URL." +
         "</div>";
+
 }
 else{
 
     frame.src = SMARTBIO_APP_URL;
 
     frame.onload = function(){
+
         setTimeout(function(){
+
             loading.style.display = "none";
+
         },500);
+
     };
+
+}
+
+
+/* =========================================================
+   CAMERA VARIABLES
+========================================================= */
+
+let cameraStream = null;
+
+let qrReader = null;
+
+let cameraRunning = false;
+
+let currentCameraIndex = 0;
+
+let availableCameras = [];
+
+
+/* =========================================================
+   SMARTBIO MESSAGE RECEIVER
+========================================================= */
+
+window.addEventListener("message",function(event){
+
+    /*
+       Only accept requests from our SmartBio Apps Script frame.
+    */
+
+    if(event.source !== frame.contentWindow){
+        return;
+    }
+
+
+    const data = event.data || {};
+
+
+    if(data.type === "SMARTBIO_OPEN_QR_SCANNER"){
+
+        openCamera();
+
+    }
+
+
+    if(data.type === "SMARTBIO_CLOSE_QR_SCANNER"){
+
+        closeCamera();
+
+    }
+
+});
+
+
+/* =========================================================
+   OPEN CAMERA SCREEN
+========================================================= */
+
+function openCamera(){
+
+    const overlay =
+        document.getElementById("cameraOverlay");
+
+    overlay.style.display = "flex";
+
+
+    const status =
+        document.getElementById("cameraStatus");
+
+    status.textContent =
+        "Starting camera...";
+
+
+    document.getElementById("cameraError").style.display =
+        "none";
+
+
+    /*
+       Start after the overlay is visible.
+    */
+
+    setTimeout(function(){
+
+        startCamera();
+
+    },150);
+
+}
+
+
+/* =========================================================
+   CLOSE CAMERA
+========================================================= */
+
+async function closeCamera(){
+
+    await stopCamera();
+
+
+    document.getElementById("cameraOverlay")
+        .style.display = "none";
+
+
+    /*
+       Tell SmartBio that scanning was cancelled.
+    */
+
+    sendToSmartBio({
+        type:"SMARTBIO_QR_CANCELLED"
+    });
+
+}
+
+
+/* =========================================================
+   START CAMERA
+========================================================= */
+
+async function startCamera(){
+
+    const status =
+        document.getElementById("cameraStatus");
+
+    const errorBox =
+        document.getElementById("cameraError");
+
+
+    errorBox.style.display = "none";
+
+
+    try{
+
+        await stopCamera();
+
+
+        if(
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ){
+
+            throw new Error(
+                "Camera is not supported by this browser."
+            );
+
+        }
+
+
+        status.textContent =
+            "Requesting camera permission...";
+
+
+        /*
+           First request the camera normally.
+           Do NOT use facingMode exact here.
+        */
+
+        cameraStream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video:{
+                    facingMode:{
+                        ideal:"environment"
+                    },
+
+                    width:{
+                        ideal:1280
+                    },
+
+                    height:{
+                        ideal:720
+                    }
+                },
+
+                audio:false
+
+            });
+
+
+        const video =
+            document.getElementById("cameraVideo");
+
+
+        video.srcObject =
+            cameraStream;
+
+
+        await video.play();
+
+
+        /*
+           Get available cameras.
+        */
+
+        try{
+
+            availableCameras =
+                await Html5Qrcode.getCameras();
+
+        }catch(cameraListError){
+
+            availableCameras = [];
+
+        }
+
+
+        cameraRunning = true;
+
+
+        status.textContent =
+            "Camera ready. Point the QR code inside the box.";
+
+
+        /*
+           Start QR decoding using the active video stream.
+        */
+
+        startQrDecoder();
+
+
+    }catch(error){
+
+        console.error(
+            "SmartBio camera error:",
+            error
+        );
+
+
+        cameraRunning = false;
+
+
+        let message =
+            "Unable to start camera.";
+
+
+        if(error.name === "NotAllowedError"){
+
+            message =
+                "Camera permission was blocked. Please allow Camera for this GitHub site in Chrome settings.";
+
+        }
+        else if(error.name === "NotFoundError"){
+
+            message =
+                "No camera was found on this device.";
+
+        }
+        else if(error.name === "NotReadableError"){
+
+            message =
+                "The camera is already being used by another app or browser tab.";
+
+        }
+        else if(error.name === "SecurityError"){
+
+            message =
+                "The browser blocked camera access.";
+
+        }
+        else if(error.message){
+
+            message =
+                error.message;
+
+        }
+
+
+        status.textContent =
+            "Camera could not be started.";
+
+
+        errorBox.textContent =
+            message;
+
+
+        errorBox.style.display =
+            "block";
+
+    }
+
+}
+
+
+/* =========================================================
+   QR DECODER
+========================================================= */
+
+function startQrDecoder(){
+
+    /*
+       Stop any old decoder.
+    */
+
+    if(qrReader){
+
+        try{
+            qrReader.stop();
+        }catch(e){}
+
+        try{
+            qrReader.clear();
+        }catch(e){}
+
+        qrReader = null;
+
+    }
+
+
+    /*
+       html5-qrcode needs a visible reader element.
+
+       We create it dynamically inside the camera area.
+    */
+
+    let reader =
+        document.getElementById("githubQrReader");
+
+
+    if(!reader){
+
+        reader =
+            document.createElement("div");
+
+        reader.id =
+            "githubQrReader";
+
+        reader.style.position =
+            "absolute";
+
+        reader.style.width =
+            "1px";
+
+        reader.style.height =
+            "1px";
+
+        reader.style.left =
+            "0";
+
+        reader.style.top =
+            "0";
+
+        reader.style.opacity =
+            "0";
+
+        document.getElementById("cameraArea")
+            .appendChild(reader);
+
+    }
+
+
+    try{
+
+        qrReader =
+            new Html5Qrcode(
+                "githubQrReader"
+            );
+
+
+        /*
+           We use the already-running camera
+           through the camera ID when possible.
+        */
+
+        if(
+            availableCameras &&
+            availableCameras.length
+        ){
+
+            let cameraId =
+                getBestCameraId();
+
+
+            qrReader.start(
+
+                cameraId,
+
+                {
+                    fps:10,
+
+                    qrbox: function(
+                        viewfinderWidth,
+                        viewfinderHeight
+                    ){
+
+                        const size =
+                            Math.floor(
+                                Math.min(
+                                    viewfinderWidth,
+                                    viewfinderHeight
+                                ) * 0.65
+                            );
+
+                        return {
+                            width:Math.min(
+                                size,
+                                300
+                            ),
+
+                            height:Math.min(
+                                size,
+                                300
+                            )
+                        };
+
+                    },
+
+                    aspectRatio:1.0,
+
+                    disableFlip:false
+                },
+
+                function(decodedText){
+
+                    handleQrResult(
+                        decodedText
+                    );
+
+                },
+
+                function(){
+
+                    /*
+                       Normal QR decode failures
+                       are ignored.
+                    */
+
+                }
+
+            ).catch(function(error){
+
+                console.warn(
+                    "QR decoder camera start warning:",
+                    error
+                );
+
+            });
+
+        }
+
+    }catch(error){
+
+        console.warn(
+            "QR decoder initialization error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   FIND BEST CAMERA
+========================================================= */
+
+function getBestCameraId(){
+
+    if(
+        !availableCameras ||
+        !availableCameras.length
+    ){
+
+        return null;
+
+    }
+
+
+    /*
+       Prefer cameras whose label contains
+       back / rear / environment.
+    */
+
+    for(
+        let i=0;
+        i<availableCameras.length;
+        i++
+    ){
+
+        const label =
+            String(
+                availableCameras[i].label || ""
+            ).toLowerCase();
+
+
+        if(
+            label.includes("back") ||
+            label.includes("rear") ||
+            label.includes("environment")
+        ){
+
+            currentCameraIndex =
+                i;
+
+            return availableCameras[i].id;
+
+        }
+
+    }
+
+
+    /*
+       Otherwise use the first camera.
+    */
+
+    currentCameraIndex = 0;
+
+    return availableCameras[0].id;
+
+}
+
+
+/* =========================================================
+   SWITCH CAMERA
+========================================================= */
+
+async function switchCamera(){
+
+    if(
+        !availableCameras ||
+        availableCameras.length < 2
+    ){
+
+        document.getElementById(
+            "cameraStatus"
+        ).textContent =
+            "Only one camera is available.";
+
+        return;
+
+    }
+
+
+    currentCameraIndex++;
+
+    if(
+        currentCameraIndex >=
+        availableCameras.length
+    ){
+
+        currentCameraIndex = 0;
+
+    }
+
+
+    const camera =
+        availableCameras[
+            currentCameraIndex
+        ];
+
+
+    await stopCamera();
+
+
+    try{
+
+        cameraStream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video:{
+                    deviceId:{
+                        exact:camera.id
+                    }
+                },
+
+                audio:false
+
+            });
+
+
+        const video =
+            document.getElementById(
+                "cameraVideo"
+            );
+
+
+        video.srcObject =
+            cameraStream;
+
+
+        await video.play();
+
+
+        cameraRunning = true;
+
+
+        document.getElementById(
+            "cameraStatus"
+        ).textContent =
+            "Camera switched. Point the QR code inside the box.";
+
+
+        startQrDecoder();
+
+
+    }catch(error){
+
+        console.error(
+            "Camera switch error:",
+            error
+        );
+
+
+        document.getElementById(
+            "cameraStatus"
+        ).textContent =
+            "Unable to switch camera.";
+
+    }
+
+}
+
+
+/* =========================================================
+   QR RESULT
+========================================================= */
+
+function handleQrResult(decodedText){
+
+    if(!decodedText){
+        return;
+    }
+
+
+    const assetNo =
+        String(decodedText).trim();
+
+
+    if(!assetNo){
+        return;
+    }
+
+
+    /*
+       Stop camera immediately.
+    */
+
+    stopCamera();
+
+
+    document.getElementById(
+        "cameraStatus"
+    ).textContent =
+        "QR scanned successfully.";
+
+
+    /*
+       Send Asset No back to SmartBio.
+    */
+
+    sendToSmartBio({
+
+        type:
+            "SMARTBIO_QR_RESULT",
+
+        assetNo:
+            assetNo,
+
+        qrText:
+            assetNo
+
+    });
+
+
+    /*
+       Close camera after a short delay.
+    */
+
+    setTimeout(function(){
+
+        document.getElementById(
+            "cameraOverlay"
+        ).style.display =
+            "none";
+
+    },500);
+
+}
+
+
+/* =========================================================
+   SEND MESSAGE TO SMARTBIO
+========================================================= */
+
+function sendToSmartBio(data){
+
+    try{
+
+        frame.contentWindow.postMessage(
+            data,
+            "*"
+        );
+
+    }catch(error){
+
+        console.error(
+            "Unable to send QR result to SmartBio:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   STOP CAMERA
+========================================================= */
+
+async function stopCamera(){
+
+    cameraRunning = false;
+
+
+    if(qrReader){
+
+        try{
+
+            await qrReader.stop();
+
+        }catch(e){}
+
+        try{
+
+            await qrReader.clear();
+
+        }catch(e){}
+
+        qrReader = null;
+
+    }
+
+
+    if(cameraStream){
+
+        try{
+
+            cameraStream
+                .getTracks()
+                .forEach(function(track){
+
+                    track.stop();
+
+                });
+
+        }catch(e){}
+
+        cameraStream = null;
+
+    }
+
+
+    const video =
+        document.getElementById(
+            "cameraVideo"
+        );
+
+
+    if(video){
+
+        video.srcObject = null;
+
+    }
 
 }
 
