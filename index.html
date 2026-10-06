@@ -201,6 +201,9 @@ html,body{
    MOBILE
 ========================================================= */
 
+#githubQrReader{position:absolute;inset:0;width:100%;height:100%;background:#000;z-index:1;}
+#githubQrReader video{width:100% !important;height:100% !important;object-fit:cover !important;}
+#cameraVideo{display:none;}
 @media(max-width:600px){
 
     #cameraTop{
@@ -265,6 +268,8 @@ html,body{
 
 
     <div id="cameraArea">
+
+        <div id="githubQrReader"></div>
 
         <video
             id="cameraVideo"
@@ -364,760 +369,207 @@ else{
 /* =========================================================
    CAMERA VARIABLES
 ========================================================= */
-
-let cameraStream = null;
-
 let qrReader = null;
-
 let cameraRunning = false;
-
 let currentCameraIndex = 0;
-
 let availableCameras = [];
-
+let qrScanLocked = false;
 
 /* =========================================================
    SMARTBIO MESSAGE RECEIVER
 ========================================================= */
-
 window.addEventListener("message",function(event){
-
-    /*
-       Only accept requests from our SmartBio Apps Script frame.
-    */
-
-    if(event.source !== frame.contentWindow){
+    if(event.source !== frame.contentWindow) return;
+    const data = event.data || {};
+    if(data.type === "SMARTBIO_OPEN_QR_SCANNER"){
+        openCamera();
         return;
     }
-
-
-    const data = event.data || {};
-
-
-    if(data.type === "SMARTBIO_OPEN_QR_SCANNER"){
-
-        openCamera();
-
-    }
-
-
     if(data.type === "SMARTBIO_CLOSE_QR_SCANNER"){
-
-        closeCamera();
-
+        closeCamera(false);
+        return;
     }
-
 });
-
 
 /* =========================================================
    OPEN CAMERA SCREEN
 ========================================================= */
-
 function openCamera(){
-
-    const overlay =
-        document.getElementById("cameraOverlay");
-
+    const overlay = document.getElementById("cameraOverlay");
+    if(!overlay) return;
     overlay.style.display = "flex";
-
-
-    const status =
-        document.getElementById("cameraStatus");
-
-    status.textContent =
-        "Starting camera...";
-
-
-    document.getElementById("cameraError").style.display =
-        "none";
-
-
-    /*
-       Start after the overlay is visible.
-    */
-
-    setTimeout(function(){
-
-        startCamera();
-
-    },150);
-
+    const status = document.getElementById("cameraStatus");
+    if(status) status.textContent = "Starting rear camera...";
+    const errorBox = document.getElementById("cameraError");
+    if(errorBox){ errorBox.style.display = "none"; errorBox.textContent = ""; }
+    qrScanLocked = false;
+    setTimeout(function(){ startCamera(); },120);
 }
-
 
 /* =========================================================
    CLOSE CAMERA
 ========================================================= */
-
-async function closeCamera(){
-
+async function closeCamera(notifySmartBio){
     await stopCamera();
-
-
-    document.getElementById("cameraOverlay")
-        .style.display = "none";
-
-
-    /*
-       Tell SmartBio that scanning was cancelled.
-    */
-
-    sendToSmartBio({
-        type:"SMARTBIO_QR_CANCELLED"
-    });
-
+    const overlay = document.getElementById("cameraOverlay");
+    if(overlay) overlay.style.display = "none";
+    if(notifySmartBio !== false){
+        sendToSmartBio({type:"SMARTBIO_QR_CANCELLED"});
+    }
 }
 
-
 /* =========================================================
-   START CAMERA
-========================================================= */
+   START CAMERA + QR DECODER
 
+   html5-qrcode owns the camera. The old version opened
+   getUserMedia() and html5-qrcode separately on the same camera,
+   which could make Chrome report that the camera was already in use.
+========================================================= */
 async function startCamera(){
-
-    const status =
-        document.getElementById("cameraStatus");
-
-    const errorBox =
-        document.getElementById("cameraError");
-
-
-    errorBox.style.display = "none";
-
+    const status = document.getElementById("cameraStatus");
+    const errorBox = document.getElementById("cameraError");
+    if(errorBox) errorBox.style.display = "none";
+    qrScanLocked = false;
 
     try{
-
         await stopCamera();
+        if(!window.isSecureContext) throw new Error("Camera requires a secure HTTPS page.");
+        if(!window.Html5Qrcode) throw new Error("QR scanner library is still loading. Please try again.");
+        if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("Camera is not supported by this browser.");
+        if(status) status.textContent = "Requesting camera permission...";
 
+        try{ availableCameras = await Html5Qrcode.getCameras(); }
+        catch(e){ console.warn("Camera list error:",e); availableCameras=[]; }
 
-        if(
-            !navigator.mediaDevices ||
-            !navigator.mediaDevices.getUserMedia
-        ){
-
-            throw new Error(
-                "Camera is not supported by this browser."
-            );
-
+        const reader = document.getElementById("githubQrReader");
+        if(reader){
+            reader.innerHTML="";
+            reader.style.position="absolute";
+            reader.style.inset="0";
+            reader.style.width="100%";
+            reader.style.height="100%";
+            reader.style.zIndex="1";
+            reader.style.background="#000";
+            reader.style.display="block";
         }
 
+        const oldVideo=document.getElementById("cameraVideo");
+        if(oldVideo){ oldVideo.style.display="none"; oldVideo.srcObject=null; }
 
-        status.textContent =
-            "Requesting camera permission...";
-
-
-        /*
-           First request the camera normally.
-           Do NOT use facingMode exact here.
-        */
-
-        cameraStream =
-            await navigator.mediaDevices.getUserMedia({
-
-                video:{
-                    facingMode:{
-                        ideal:"environment"
-                    },
-
-                    width:{
-                        ideal:1280
-                    },
-
-                    height:{
-                        ideal:720
-                    }
-                },
-
-                audio:false
-
-            });
-
-
-        const video =
-            document.getElementById("cameraVideo");
-
-
-        video.srcObject =
-            cameraStream;
-
-
-        await video.play();
-
-
-        /*
-           Get available cameras.
-        */
+        qrReader=new Html5Qrcode("githubQrReader");
+        const config={
+            fps:10,
+            qrbox:function(w,h){
+                const size=Math.floor(Math.min(w,h)*0.65);
+                return {width:Math.min(size,300),height:Math.min(size,300)};
+            },
+            aspectRatio:1.0,
+            disableFlip:false
+        };
+        let cameraSource=availableCameras.length ? getBestCameraId() : "environment";
+        if(status) status.textContent="Starting rear camera...";
 
         try{
-
-            availableCameras =
-                await Html5Qrcode.getCameras();
-
-        }catch(cameraListError){
-
-            availableCameras = [];
-
+            await qrReader.start(cameraSource,config,function(decodedText){handleQrResult(decodedText);},function(){});
+        }catch(firstError){
+            console.warn("Preferred camera failed:",firstError);
+            try{ if(qrReader){try{await qrReader.clear();}catch(e){}} }catch(e){}
+            qrReader=new Html5Qrcode("githubQrReader");
+            await qrReader.start({facingMode:"environment"},config,function(decodedText){handleQrResult(decodedText);},function(){});
         }
 
-
-        cameraRunning = true;
-
-
-        status.textContent =
-            "Camera ready. Point the QR code inside the box.";
-
-
-        /*
-           Start QR decoding using the active video stream.
-        */
-
-        startQrDecoder();
-
+        cameraRunning=true;
+        if(status) status.textContent="Camera ready. Point the QR code inside the green box.";
 
     }catch(error){
-
-        console.error(
-            "SmartBio camera error:",
-            error
-        );
-
-
-        cameraRunning = false;
-
-
-        let message =
-            "Unable to start camera.";
-
-
-        if(error.name === "NotAllowedError"){
-
-            message =
-                "Camera permission was blocked. Please allow Camera for this GitHub site in Chrome settings.";
-
-        }
-        else if(error.name === "NotFoundError"){
-
-            message =
-                "No camera was found on this device.";
-
-        }
-        else if(error.name === "NotReadableError"){
-
-            message =
-                "The camera is already being used by another app or browser tab.";
-
-        }
-        else if(error.name === "SecurityError"){
-
-            message =
-                "The browser blocked camera access.";
-
-        }
-        else if(error.message){
-
-            message =
-                error.message;
-
-        }
-
-
-        status.textContent =
-            "Camera could not be started.";
-
-
-        errorBox.textContent =
-            message;
-
-
-        errorBox.style.display =
-            "block";
-
+        console.error("SmartBio GitHub camera error:",error);
+        cameraRunning=false;
+        let message="Unable to start camera.";
+        if(error && error.name==="NotAllowedError") message="Camera permission was blocked. Please allow Camera for this GitHub site in Chrome settings.";
+        else if(error && error.name==="NotFoundError") message="No camera was found on this device.";
+        else if(error && error.name==="NotReadableError") message="The camera is already being used by another app or browser tab.";
+        else if(error && error.name==="SecurityError") message="The browser blocked camera access.";
+        else if(error && error.message) message=error.message;
+        if(status) status.textContent="Camera could not be started.";
+        if(errorBox){ errorBox.textContent=message; errorBox.style.display="block"; }
     }
-
 }
-
-
-/* =========================================================
-   QR DECODER
-========================================================= */
-
-function startQrDecoder(){
-
-    /*
-       Stop any old decoder.
-    */
-
-    if(qrReader){
-
-        try{
-            qrReader.stop();
-        }catch(e){}
-
-        try{
-            qrReader.clear();
-        }catch(e){}
-
-        qrReader = null;
-
-    }
-
-
-    /*
-       html5-qrcode needs a visible reader element.
-
-       We create it dynamically inside the camera area.
-    */
-
-    let reader =
-        document.getElementById("githubQrReader");
-
-
-    if(!reader){
-
-        reader =
-            document.createElement("div");
-
-        reader.id =
-            "githubQrReader";
-
-        reader.style.position =
-            "absolute";
-
-        reader.style.width =
-            "1px";
-
-        reader.style.height =
-            "1px";
-
-        reader.style.left =
-            "0";
-
-        reader.style.top =
-            "0";
-
-        reader.style.opacity =
-            "0";
-
-        document.getElementById("cameraArea")
-            .appendChild(reader);
-
-    }
-
-
-    try{
-
-        qrReader =
-            new Html5Qrcode(
-                "githubQrReader"
-            );
-
-
-        /*
-           We use the already-running camera
-           through the camera ID when possible.
-        */
-
-        if(
-            availableCameras &&
-            availableCameras.length
-        ){
-
-            let cameraId =
-                getBestCameraId();
-
-
-            qrReader.start(
-
-                cameraId,
-
-                {
-                    fps:10,
-
-                    qrbox: function(
-                        viewfinderWidth,
-                        viewfinderHeight
-                    ){
-
-                        const size =
-                            Math.floor(
-                                Math.min(
-                                    viewfinderWidth,
-                                    viewfinderHeight
-                                ) * 0.65
-                            );
-
-                        return {
-                            width:Math.min(
-                                size,
-                                300
-                            ),
-
-                            height:Math.min(
-                                size,
-                                300
-                            )
-                        };
-
-                    },
-
-                    aspectRatio:1.0,
-
-                    disableFlip:false
-                },
-
-                function(decodedText){
-
-                    handleQrResult(
-                        decodedText
-                    );
-
-                },
-
-                function(){
-
-                    /*
-                       Normal QR decode failures
-                       are ignored.
-                    */
-
-                }
-
-            ).catch(function(error){
-
-                console.warn(
-                    "QR decoder camera start warning:",
-                    error
-                );
-
-            });
-
-        }
-
-    }catch(error){
-
-        console.warn(
-            "QR decoder initialization error:",
-            error
-        );
-
-    }
-
-}
-
 
 /* =========================================================
    FIND BEST CAMERA
 ========================================================= */
-
 function getBestCameraId(){
-
-    if(
-        !availableCameras ||
-        !availableCameras.length
-    ){
-
-        return null;
-
-    }
-
-
-    /*
-       Prefer cameras whose label contains
-       back / rear / environment.
-    */
-
-    for(
-        let i=0;
-        i<availableCameras.length;
-        i++
-    ){
-
-        const label =
-            String(
-                availableCameras[i].label || ""
-            ).toLowerCase();
-
-
-        if(
-            label.includes("back") ||
-            label.includes("rear") ||
-            label.includes("environment")
-        ){
-
-            currentCameraIndex =
-                i;
-
+    if(!availableCameras || !availableCameras.length) return "environment";
+    for(let i=0;i<availableCameras.length;i++){
+        const label=String(availableCameras[i].label||"").toLowerCase();
+        if(label.includes("back")||label.includes("rear")||label.includes("environment")){
+            currentCameraIndex=i;
             return availableCameras[i].id;
-
         }
-
     }
-
-
-    /*
-       Otherwise use the first camera.
-    */
-
-    currentCameraIndex = 0;
-
+    currentCameraIndex=0;
     return availableCameras[0].id;
-
 }
-
 
 /* =========================================================
    SWITCH CAMERA
 ========================================================= */
-
 async function switchCamera(){
-
-    if(
-        !availableCameras ||
-        availableCameras.length < 2
-    ){
-
-        document.getElementById(
-            "cameraStatus"
-        ).textContent =
-            "Only one camera is available.";
-
+    if(!availableCameras || availableCameras.length<2){
+        const status=document.getElementById("cameraStatus");
+        if(status) status.textContent="Only one camera is available.";
         return;
-
     }
-
-
     currentCameraIndex++;
-
-    if(
-        currentCameraIndex >=
-        availableCameras.length
-    ){
-
-        currentCameraIndex = 0;
-
-    }
-
-
-    const camera =
-        availableCameras[
-            currentCameraIndex
-        ];
-
-
-    await stopCamera();
-
-
+    if(currentCameraIndex>=availableCameras.length) currentCameraIndex=0;
+    const camera=availableCameras[currentCameraIndex];
+    const status=document.getElementById("cameraStatus");
     try{
-
-        cameraStream =
-            await navigator.mediaDevices.getUserMedia({
-
-                video:{
-                    deviceId:{
-                        exact:camera.id
-                    }
-                },
-
-                audio:false
-
-            });
-
-
-        const video =
-            document.getElementById(
-                "cameraVideo"
-            );
-
-
-        video.srcObject =
-            cameraStream;
-
-
-        await video.play();
-
-
-        cameraRunning = true;
-
-
-        document.getElementById(
-            "cameraStatus"
-        ).textContent =
-            "Camera switched. Point the QR code inside the box.";
-
-
-        startQrDecoder();
-
-
+        if(qrReader){try{await qrReader.stop();}catch(e){} try{await qrReader.clear();}catch(e){}}
+        const reader=document.getElementById("githubQrReader");
+        if(reader) reader.innerHTML="";
+        qrReader=new Html5Qrcode("githubQrReader");
+        const config={fps:10,qrbox:function(w,h){const size=Math.floor(Math.min(w,h)*0.65);return {width:Math.min(size,300),height:Math.min(size,300)};},aspectRatio:1.0,disableFlip:false};
+        await qrReader.start(camera.id,config,function(decodedText){handleQrResult(decodedText);},function(){});
+        cameraRunning=true;
+        if(status) status.textContent="Camera switched. Point the QR code inside the green box.";
     }catch(error){
-
-        console.error(
-            "Camera switch error:",
-            error
-        );
-
-
-        document.getElementById(
-            "cameraStatus"
-        ).textContent =
-            "Unable to switch camera.";
-
+        console.error("Camera switch error:",error);
+        if(status) status.textContent="Unable to switch camera.";
     }
-
 }
-
 
 /* =========================================================
    QR RESULT
 ========================================================= */
-
-function handleQrResult(decodedText){
-
-    if(!decodedText){
-        return;
-    }
-
-
-    const assetNo =
-        String(decodedText).trim();
-
-
-    if(!assetNo){
-        return;
-    }
-
-
-    /*
-       Stop camera immediately.
-    */
-
-    stopCamera();
-
-
-    document.getElementById(
-        "cameraStatus"
-    ).textContent =
-        "QR scanned successfully.";
-
-
-    /*
-       Send Asset No back to SmartBio.
-    */
-
-    sendToSmartBio({
-
-        type:
-            "SMARTBIO_QR_RESULT",
-
-        assetNo:
-            assetNo,
-
-        qrText:
-            assetNo
-
-    });
-
-
-    /*
-       Close camera after a short delay.
-    */
-
-    setTimeout(function(){
-
-        document.getElementById(
-            "cameraOverlay"
-        ).style.display =
-            "none";
-
-    },500);
-
+async function handleQrResult(decodedText){
+    if(qrScanLocked || !decodedText) return;
+    const assetNo=String(decodedText).trim();
+    if(!assetNo) return;
+    qrScanLocked=true;
+    const status=document.getElementById("cameraStatus");
+    if(status) status.textContent="QR scanned successfully.";
+    await stopCamera();
+    sendToSmartBio({type:"SMARTBIO_QR_RESULT",assetNo:assetNo,qrText:assetNo});
+    setTimeout(function(){const overlay=document.getElementById("cameraOverlay");if(overlay) overlay.style.display="none";},350);
 }
-
 
 /* =========================================================
-   SEND MESSAGE TO SMARTBIO
+   SEND RESULT TO SMARTBIO IFRAME
 ========================================================= */
-
 function sendToSmartBio(data){
-
-    try{
-
-        frame.contentWindow.postMessage(
-            data,
-            "*"
-        );
-
-    }catch(error){
-
-        console.error(
-            "Unable to send QR result to SmartBio:",
-            error
-        );
-
-    }
-
+    try{ if(frame && frame.contentWindow) frame.contentWindow.postMessage(data,"*"); }
+    catch(error){ console.error("Unable to send QR result to SmartBio:",error); }
 }
-
 
 /* =========================================================
    STOP CAMERA
 ========================================================= */
-
 async function stopCamera(){
-
-    cameraRunning = false;
-
-
-    if(qrReader){
-
-        try{
-
-            await qrReader.stop();
-
-        }catch(e){}
-
-        try{
-
-            await qrReader.clear();
-
-        }catch(e){}
-
-        qrReader = null;
-
-    }
-
-
-    if(cameraStream){
-
-        try{
-
-            cameraStream
-                .getTracks()
-                .forEach(function(track){
-
-                    track.stop();
-
-                });
-
-        }catch(e){}
-
-        cameraStream = null;
-
-    }
-
-
-    const video =
-        document.getElementById(
-            "cameraVideo"
-        );
-
-
-    if(video){
-
-        video.srcObject = null;
-
-    }
-
+    cameraRunning=false;
+    if(qrReader){try{await qrReader.stop();}catch(e){} try{await qrReader.clear();}catch(e){} qrReader=null;}
+    const reader=document.getElementById("githubQrReader");
+    if(reader) reader.innerHTML="";
 }
 
 </script>
