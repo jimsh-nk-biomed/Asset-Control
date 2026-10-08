@@ -379,12 +379,14 @@ let qrScanLocked = false;
    SMARTBIO MESSAGE RECEIVER
 ========================================================= */
 window.addEventListener("message",function(event){
-    if(event.source !== frame.contentWindow) return;
+
     const data = event.data || {};
+
     if(data.type === "SMARTBIO_OPEN_QR_SCANNER"){
         openCamera();
         return;
     }
+
     if(data.type === "SMARTBIO_CLOSE_QR_SCANNER"){
         closeCamera(false);
         return;
@@ -395,15 +397,31 @@ window.addEventListener("message",function(event){
    OPEN CAMERA SCREEN
 ========================================================= */
 function openCamera(){
+
     const overlay = document.getElementById("cameraOverlay");
     if(!overlay) return;
+
     overlay.style.display = "flex";
+
     const status = document.getElementById("cameraStatus");
     if(status) status.textContent = "Starting rear camera...";
+
     const errorBox = document.getElementById("cameraError");
-    if(errorBox){ errorBox.style.display = "none"; errorBox.textContent = ""; }
+    if(errorBox){
+        errorBox.style.display = "none";
+        errorBox.textContent = "";
+    }
+
     qrScanLocked = false;
-    setTimeout(function(){ startCamera(); },120);
+
+    /* Tell SmartBio that the GitHub camera screen received the request. */
+    sendToSmartBio({
+        type:"SMARTBIO_QR_CAMERA_OPENED"
+    });
+
+    setTimeout(function(){
+        startCamera();
+    },120);
 }
 
 /* =========================================================
@@ -491,7 +509,15 @@ async function startCamera(){
         else if(error && error.name==="SecurityError") message="The browser blocked camera access.";
         else if(error && error.message) message=error.message;
         if(status) status.textContent="Camera could not be started.";
-        if(errorBox){ errorBox.textContent=message; errorBox.style.display="block"; }
+        if(errorBox){
+            errorBox.textContent=message;
+            errorBox.style.display="block";
+        }
+
+        sendToSmartBio({
+            type:"SMARTBIO_QR_CAMERA_ERROR",
+            message:message
+        });
     }
 }
 
