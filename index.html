@@ -333,12 +333,45 @@ document.getElementById("smartbioFrame");
 const loading =
 document.getElementById("loading");
 
+/*
+   Dedicated QR camera mode.
+   When ?qrscanner=1 is present, this GitHub page becomes
+   ONLY the camera scanner. It does NOT show SmartBio login.
+*/
+const QR_SCANNER_MODE =
+    new URLSearchParams(window.location.search).get("qrscanner") === "1";
+
 
 /* =========================================================
    OPEN SMARTBIO
 ========================================================= */
 
-if(
+if(QR_SCANNER_MODE){
+
+    /*
+       Scanner popup: do not load the SmartBio iframe/login.
+    */
+    if(frame){
+        frame.style.display = "none";
+    }
+
+    if(loading){
+        loading.style.display = "none";
+    }
+
+    document.title = "SmartBio QR Scanner";
+
+    setTimeout(function(){
+        const overlay = document.getElementById("cameraOverlay");
+        if(overlay) overlay.style.display = "flex";
+
+        const status = document.getElementById("cameraStatus");
+        if(status) status.textContent = "Starting rear camera...";
+
+        startCamera();
+    },300);
+
+}else if(
     SMARTBIO_APP_URL.indexOf("PASTE_YOUR_REAL_EXEC_URL_HERE") !== -1
 ){
 
@@ -432,7 +465,17 @@ async function closeCamera(notifySmartBio){
     const overlay = document.getElementById("cameraOverlay");
     if(overlay) overlay.style.display = "none";
     if(notifySmartBio !== false){
-        sendToSmartBio({type:"SMARTBIO_QR_CANCELLED"});
+        sendToSmartBio({
+            type:"SMARTBIO_QR_CANCELLED"
+        });
+    }
+
+    if(QR_SCANNER_MODE){
+        setTimeout(function(){
+            try{
+                window.close();
+            }catch(e){}
+        },100);
     }
 }
 
@@ -576,17 +619,65 @@ async function handleQrResult(decodedText){
     const status=document.getElementById("cameraStatus");
     if(status) status.textContent="QR scanned successfully.";
     await stopCamera();
-    sendToSmartBio({type:"SMARTBIO_QR_RESULT",assetNo:assetNo,qrText:assetNo});
-    setTimeout(function(){const overlay=document.getElementById("cameraOverlay");if(overlay) overlay.style.display="none";},350);
+    sendToSmartBio({
+        type:"SMARTBIO_QR_RESULT",
+        assetNo:assetNo,
+        qrText:assetNo
+    });
+
+    setTimeout(function(){
+
+        const overlay =
+            document.getElementById("cameraOverlay");
+
+        if(overlay){
+            overlay.style.display = "none";
+        }
+
+        if(QR_SCANNER_MODE){
+            try{
+                window.close();
+            }catch(e){}
+        }
+
+    },350);
 }
 
 /* =========================================================
    SEND RESULT TO SMARTBIO IFRAME
 ========================================================= */
 function sendToSmartBio(data){
-    try{ if(frame && frame.contentWindow) frame.contentWindow.postMessage(data,"*"); }
-    catch(error){ console.error("Unable to send QR result to SmartBio:",error); }
+
+    try{
+
+        if(QR_SCANNER_MODE && window.opener && !window.opener.closed){
+
+            window.opener.postMessage(
+                data,
+                "*"
+            );
+
+            return;
+        }
+
+        if(frame && frame.contentWindow){
+
+            frame.contentWindow.postMessage(
+                data,
+                "*"
+            );
+        }
+
+    }catch(error){
+
+        console.error(
+            "Unable to send QR result to SmartBio:",
+            error
+        );
+
+    }
 }
+
 
 /* =========================================================
    STOP CAMERA
